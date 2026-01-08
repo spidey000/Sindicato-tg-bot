@@ -26,14 +26,33 @@ class DelegadoNotionClient:
             return None
 
         try:
-            properties = {
-                "ID": {"title": [{"text": {"content": case_data.get("id", "Unknown")}}]},
-                "Tipo": {"select": {"name": case_data.get("type", "General")}},
-                "Estado": {"status": {"name": case_data.get("status", "Borrador")}},
-                "Empresa": {"rich_text": [{"text": {"content": case_data.get("company", "Pendiente")}}]},
-                "Fecha Apertura": {"date": {"start": case_data.get("created_at", "").isoformat()}} if case_data.get("created_at") else None,
-                "Contexto Inicial": {"rich_text": [{"text": {"content": case_data.get("initial_context", "")}}]}
+            # Map internal values to Notion Schema options
+            status_map = {
+                "Borrador": "Pendiente de hacer",
+                "En edición": "En progreso",
+                "Listo": "En revisión",
+                "Enviado": "Presentada"
             }
+            notion_status = status_map.get(case_data.get("status"), "Pendiente de hacer")
+
+            type_map = {
+                "Denuncia ITSS": "ITSS",
+                "Demanda Judicial": "Defensor del pueblo", # Fallback as it's not in the list
+                "Email RRHH": None # No mapping in Organismo
+            }
+            notion_type = type_map.get(case_data.get("type"))
+
+            # Construct Title: "ID - Context (Truncated)"
+            title_text = f"{case_data.get('id')} - {case_data.get('initial_context', '')[:50]}"
+
+            properties = {
+                "Name": {"title": [{"text": {"content": title_text}}]},
+                "Estado": {"status": {"name": notion_status}},
+                "AI summary": {"rich_text": [{"text": {"content": case_data.get("initial_context", "")}}]}
+            }
+
+            if notion_type:
+                properties["Organismo"] = {"select": {"name": notion_type}}
             
             # Remove None values
             properties = {k: v for k, v in properties.items() if v is not None}
@@ -68,6 +87,41 @@ class DelegadoNotionClient:
             logger.error(f"Error searching for case {case_id}: {e}")
             return None
 
+    def get_active_cases(self) -> list:
+        """Retrieves active cases (not archived/closed)."""
+        if not self.client or not self.database_id: return []
+        
+        try:
+            response = self.client.databases.query(
+                database_id=self.database_id,
+                filter={
+                    "or": [
+                        {"property": "Estado", "status": {"equals": "Pendiente de hacer"}},
+                        {"property": "Estado", "status": {"equals": "En progreso"}},
+                        {"property": "Estado", "status": {"equals": "En revisión"}}
+                    ]
+                }
+            )
+            
+            cases = []
+            for page in response["results"]:
+                title_prop = page["properties"].get("Name", {}).get("title", [])
+                title = title_prop[0]["text"]["content"] if title_prop else "Sin Título"
+                status = page["properties"].get("Estado", {}).get("status", {}).get("name", "Unknown")
+                
+                # Try to extract ID from Title (assuming "ID - Context" format)
+                case_id = title.split(" - ")[0] if " - " in title else title
+                
+                cases.append({
+                    "id": case_id,
+                    "title": title,
+                    "status": status
+                })
+            return cases
+        except Exception as e:
+            logger.error(f"Error fetching active cases: {e}")
+            return []
+
     def update_case_status(self, case_id: str, new_status: str) -> bool:
         """Updates the status of a case in Notion."""
         page_id = self._get_page_id_by_case_id(case_id)
@@ -89,14 +143,13 @@ class DelegadoNotionClient:
             return False
 
     def update_page_links(self, page_id: str, drive_link: str = None, doc_link: str = None):
-        """Updates the Drive and Doc links for a specific page."""
+        """Updates the Drive link for a specific page."""
         if not self.client: return
 
         properties = {}
         if drive_link:
-            properties["Enlace Drive"] = {"url": drive_link}
-        if doc_link:
-            properties["Enlace Doc"] = {"url": doc_link}
+            properties["Gdrive folder"] = {"url": drive_link}
+        # Note: The schema doesn't have a specific 'Doc Link' field, so we only update Drive or append to body (not implemented here)
             
         if not properties: return
 

@@ -103,6 +103,34 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
 
 @restricted
+async def update_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for /update command. Lists active cases for editing."""
+    if update.effective_chat.type != "private":
+        await update.message.reply_text("⚠️ Este comando solo está disponible en chat privado.")
+        return
+
+    await update.message.reply_text("🔄 Consultando expedientes activos...")
+    
+    cases = notion.get_active_cases()
+    
+    if not cases:
+        await update.message.reply_text("📂 No tienes expedientes activos para editar.")
+        return
+
+    keyboard = []
+    message_text = "📂 *TUS CASOS ACTIVOS*\nSelecciona uno para editar:\n\n"
+    
+    bot_username = context.bot.username
+    
+    for case in cases[:10]: # Limit to 10 to avoid hitting limits
+        message_text += f"🔹 `{case['id']}` - {case['status']}\n"
+        deep_link = f"https://t.me/{bot_username}?start=case_{case['id']}"
+        keyboard.append([InlineKeyboardButton(f"✏️ Editar {case['id']}", url=deep_link)])
+
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(message_text, parse_mode='Markdown', reply_markup=reply_markup)
+
+@restricted
 async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for /status command. Updates Notion status."""
     args = context.args

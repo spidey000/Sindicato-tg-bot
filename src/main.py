@@ -8,7 +8,8 @@ from src.handlers import (
     email_handler,
     private_message_handler,
     stop_editing_handler,
-    status_handler
+    status_handler,
+    update_handler
 )
 
 # Configure Logging
@@ -32,6 +33,7 @@ def main():
     application.add_handler(CommandHandler("email", email_handler))
     application.add_handler(CommandHandler("stop", stop_editing_handler))
     application.add_handler(CommandHandler("status", status_handler))
+    application.add_handler(CommandHandler("update", update_handler))
 
     # Message Handlers (Private messages, Files, etc.)
     # Catch all non-command messages in private chats

@@ -1,14 +1,22 @@
 from src.agents.inspector import InspectorLaboralAgent
+from src.agents.litigante import LitiganteProcesalAgent
+from src.agents.comunicador import ComunicadorCorporativoAgent
 
 class AgentOrchestrator:
     def __init__(self):
         self.inspector = InspectorLaboralAgent()
-        # Initialize other agents here
+        self.litigante = LitiganteProcesalAgent()
+        self.comunicador = ComunicadorCorporativoAgent()
 
     def get_agent_for_command(self, command: str):
         if command == "/denuncia":
             return self.inspector
-        # Add other mappings
-        return self.inspector # Default
+        elif command == "/demanda":
+            return self.litigante
+        elif command == "/email":
+            return self.comunicador
+        
+        # Default fallback
+        return self.inspector
 
 agent_orchestrator = AgentOrchestrator()
