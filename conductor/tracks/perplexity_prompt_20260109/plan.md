@@ -19,7 +19,7 @@ Update the Perplexity integration to use the specialized prompt template and han
 - [x] Task: Verify Perplexity client tests pass. 0000000
 - [ ] Task: Conductor - User Manual Verification 'Enhanced Perplexity Prompt' (Protocol in workflow.md)
 
-## Phase 3: Notion Auditing Implementation
+## Phase 3: Notion Auditing Implementation [checkpoint: 0199ff2]
 Extend the Notion client to support logging the raw verification report as a visible block in the case page.
 
 - [x] Task: Create `tests/test_notion_audit_log.py` to verify appending a toggle block to a page. 0000000
