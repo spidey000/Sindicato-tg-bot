@@ -7,14 +7,14 @@
 - [x] Task: Add unit tests for retry logic and JSON validation (mocking API failures and short responses). bc80738
 - [x] Task: Conductor - User Manual Verification 'LLM Reliability' (Protocol in workflow.md) e2d00f2
 
-## Phase 2: Atomic Rollback Utilities [checkpoint: ]
+## Phase 2: Atomic Rollback Utilities [checkpoint: 0aafe2e]
 - [x] Task: Create `src/integrations/cleanup_helper.py` with methods to:
     - Delete Notion pages (`API-update-a-block` with `archived: true`).
     - Delete Drive folders (`drive_client.service.files().delete()`).
     - Delete Google Docs (handled by folder deletion, but ensure cleanup). 7510e5a
 - [x] Task: Implement a `RollbackManager` class in `src/utils.py` to track created IDs and execute cleanup on failure. 77f72a6
 - [x] Task: Add unit tests for `RollbackManager` and cleanup utilities using mocks. 7510e5a, 77f72a6
-- [ ] Task: Conductor - User Manual Verification 'Rollback Utilities' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Rollback Utilities' (Protocol in workflow.md) 0aafe2e
 
 ## Phase 3: Handler Integration & Error Reporting [checkpoint: ]
 - [ ] Task: Audit `denuncia_handler`, `demanda_handler`, and `email_handler` to confirm they all have Notion creation, Drive folder creation, and Doc draft file creation logic. Add missing logic if found (using `demanda_handler` as the template).
