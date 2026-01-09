@@ -52,3 +52,21 @@ def get_logs(file_path, max_bytes=10485760):
     except Exception as e:
         print(f"Error reading log file: {e}")
         return None
+
+async def send_progress_message(update, steps):
+    """
+    Sends the initial progress message with all steps pending.
+    
+    Args:
+        update: The Telegram Update object.
+        steps (list): List of step descriptions (str).
+        
+    Returns:
+        int: The message_id of the sent message.
+    """
+    # Format steps as strikethrough italic
+    formatted_steps = "\n".join([f"~_{step}_~" for step in steps])
+    message_text = f"🔄 *Procesando solicitud...*\n\n{formatted_steps}"
+    
+    sent_message = await update.message.reply_text(message_text, parse_mode='Markdown')
+    return sent_message.message_id
