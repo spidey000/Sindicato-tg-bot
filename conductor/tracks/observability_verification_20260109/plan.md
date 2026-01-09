@@ -5,7 +5,7 @@
 - [x] Task: Conductor - User Manual Verification 'Configuration' (Protocol in workflow.md)
 
 ## Phase 2: `/log` Command Implementation
-- [ ] Task: Create `tests/test_log_command.py` with failing tests for the log retrieval logic (file reading, size limit).
+- [x] Task: Create `tests/test_log_command.py` with failing tests for the log retrieval logic (file reading, size limit). d82e9a1
 - [ ] Task: Implement `get_logs` function in `src/utils.py` (or similar) to handle safe file reading and tailing.
 - [ ] Task: Update `src/handlers.py` to register the `/log` command handler.
 - [ ] Task: Verify `/log` command tests pass.
