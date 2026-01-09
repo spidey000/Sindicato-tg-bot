@@ -5,7 +5,7 @@
     - [ ] Subtask: Write Tests for Agent Summary: Create unit tests ensuring agents return a JSON/Structured output with a `summary` field.
     - [ ] Subtask: Implement Summary Logic: Modify `src/agents/base.py` (or specific agent classes) to prompt the LLM for a 5-7 word summary alongside the draft.
     - [ ] Subtask: Verify Output: Ensure the summary is stripped of special characters and suitable for file naming.
-- [ ] Task: Conductor - User Manual Verification 'AI Agent Enhancement' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'AI Agent Enhancement' (Protocol in workflow.md) [checkpoint: b1c4942]
 
 ## Phase 2: Integration Client Updates
 - [ ] Task: Update Notion Client for Titles
