@@ -7,8 +7,8 @@
 ## Phase 2: `/log` Command Implementation
 - [x] Task: Create `tests/test_log_command.py` with failing tests for the log retrieval logic (file reading, size limit). d82e9a1
 - [x] Task: Implement `get_logs` function in `src/utils.py` (or similar) to handle safe file reading and tailing. 03c0d4d
-- [ ] Task: Update `src/handlers.py` to register the `/log` command handler.
-- [ ] Task: Verify `/log` command tests pass.
+- [x] Task: Update `src/handlers.py` to register the `/log` command handler. 3f021fc
+- [x] Task: Verify `/log` command tests pass. 3f021fc
 - [ ] Task: Conductor - User Manual Verification 'Log Command' (Protocol in workflow.md)
 
 ## Phase 3: Perplexity Client & Integration
