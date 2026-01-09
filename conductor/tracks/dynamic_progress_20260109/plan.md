@@ -11,7 +11,7 @@
 - [x] Task: Conductor - User Manual Verification 'Core Logic' (Protocol in workflow.md) 9e60eee
 
 ## Phase 2: Handler Integration (`/denuncia`, `/demanda`, `/email`)
-- [ ] Task: Refactor `denuncia_handler` in `src/handlers.py`:
+- [x] Task: Refactor `denuncia_handler` in `src/handlers.py`:
     - Initialize progress message.
     - Step 1: Call `agent.generate_structured_draft`. Update Progress.
     - Step 2: Call `agent.verify_draft_content` (Perplexity). Update Progress.
@@ -20,10 +20,10 @@
     - Step 5: Notion Entry. Update Progress.
     - Step 6: Drive Folder. Update Progress.
     - Step 7: Docs Creation. Update Progress.
-    - Final Step: Replace progress message with Success card.
-- [ ] Task: Apply same refactoring to `demanda_handler`.
-- [ ] Task: Apply same refactoring to `email_handler`.
-- [ ] Task: Conductor - User Manual Verification 'Handlers Integration' (Protocol in workflow.md)
+    - Final Step: Replace progress message with Success card. 94d5390e
+- [x] Task: Apply same refactoring to `demanda_handler`. ab1b133
+- [x] Task: Apply same refactoring to `email_handler`. d352814
+- [x] Task: Conductor - User Manual Verification 'Handlers Integration' (Protocol in workflow.md) 42c3083
 
 ## Phase 3: Testing & Polish
 - [ ] Task: Create `tests/test_progress_updates.py` to mock the bot and verify message edit sequence.
