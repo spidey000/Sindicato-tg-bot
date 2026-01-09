@@ -1,6 +1,6 @@
-# Sindicato Telegram Bot (Delegado 360)
+# Marxnager
 
-**Delegado 360** es un asistente sindical avanzado para Telegram, diseñado para potenciar la labor de los delegados mediante la automatización de documentos legales y la gestión centralizada de expedientes.
+**Marxnager** es un asistente sindical avanzado para Telegram, diseñado para potenciar la labor de los delegados mediante la automatización de documentos legales y la gestión centralizada de expedientes.
 
 ![Status](https://img.shields.io/badge/Status-Development-yellow)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)

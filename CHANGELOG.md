@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- **Branding Update**: Renamed application from "Delegado 360" to "Marxnager" across documentation and user-facing interfaces.
+
 ### Added
 - **Real-time Progress Tracking**: Implemented a dynamic checklist system using a single Telegram message that updates (bold/strikethrough) as each step of the document generation process completes.
 - **Improved LLM Reliability**: Enhanced `AgentBase` with automatic retries (up to 3) and native `response_format: {"type": "json_object"}` support for more robust structured output.
