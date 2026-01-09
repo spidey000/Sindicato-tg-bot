@@ -13,9 +13,11 @@ El bot permite a los delegados sindicales autorizados:
 3.  **Flujo Dual (Público/Privado)**: Inicia la acción en el grupo sindical para visibilidad, y refina los detalles (pruebas, redacción) en privado.
 
 ### ✨ Características Clave (Actualizado)
-*   **IDs Secuenciales Inteligentes**: El sistema detecta automáticamente el último ID utilizado (ej. `D-2026-005`) y asigna el siguiente, evitando duplicados.
-*   **Nombres Descriptivos**: Los expedientes en Notion y las carpetas de Drive se crean con el formato `ID - Resumen` (ej. `D-2026-006 - Falta de EPIs`), facilitando la búsqueda.
-*   **Integración Robusta**: Sincronización bidireccional fiable con Notion (incluso con bases de datos complejas) y Google Drive.
+*   **🛡️ Creación Atómica y Rollback**: Garantía de integridad "todo o nada". Si falla la creación de cualquier activo (Notion, Drive, Doc) durante el proceso, el sistema revierte automáticamente todos los cambios parciales y notifica al usuario, evitando archivos huérfanos.
+*   **⚖️ Verificación Legal (Dos Etapas)**: Cada borrador generado por la IA pasa por una fase de "Grounding" con **Perplexity Sonar**, que verifica la validez jurídica y cita la normativa vigente antes de entregarte el documento.
+*   **🔄 Seguimiento en Tiempo Real**: Lista de verificación dinámica en Telegram que se actualiza en vivo (tachado/negrita) a medida que el bot completa cada paso (Drafting, Notion, Drive, Docs).
+*   **🆔 IDs Secuenciales Inteligentes**: Detección automática del último ID (ej. `D-2026-005`) y asignación del siguiente.
+*   **📂 Nombres Descriptivos**: Organización automática en Notion y Drive con formato `ID - Resumen`.
 
 ---
 
@@ -23,7 +25,8 @@ El bot permite a los delegados sindicales autorizados:
 
 *   **Python 3.11+**
 *   **Telegram Bot Token** (vía @BotFather)
-*   **OpenRouter API Key** (para acceso a modelos LLM)
+*   **OpenRouter API Key** (para generación de borradores)
+*   **Perplexity API Key** (para verificación legal y citas)
 *   **Notion Integration Token** y ID de Base de Datos
 *   **Google Cloud Service Account** (con Drive y Docs API habilitadas)
 
@@ -58,10 +61,14 @@ BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
 AUTHORIZED_USER_IDS=123456789,987654321  # IDs separados por comas
 LOG_LEVEL=INFO
 
-# OpenRouter (IA)
+# OpenRouter (IA - Generación)
 OPENROUTER_API_KEY=sk-or-v1-...
 MODEL_PRIMARY=deepseek/deepseek-r1-0528:free
 MODEL_FALLBACK=mistralai/devstral-2512:free
+
+# Perplexity (IA - Verificación)
+PERPLEXITY_API_KEY_PRIMARY=pplx-...
+PERPLEXITY_API_KEY_FALLBACK=pplx-...
 
 # Notion
 NOTION_TOKEN=ntn_...
