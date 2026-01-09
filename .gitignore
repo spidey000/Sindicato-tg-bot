@@ -10,3 +10,4 @@ google_credentials.json
 client_secret.json
 token.json
 *.log
+gcloud/
