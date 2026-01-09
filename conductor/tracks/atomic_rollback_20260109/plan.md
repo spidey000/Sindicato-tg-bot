@@ -8,10 +8,10 @@
 - [x] Task: Conductor - User Manual Verification 'LLM Reliability' (Protocol in workflow.md) e2d00f2
 
 ## Phase 2: Atomic Rollback Utilities [checkpoint: ]
-- [ ] Task: Create `src/integrations/cleanup_helper.py` with methods to:
+- [x] Task: Create `src/integrations/cleanup_helper.py` with methods to:
     - Delete Notion pages (`API-update-a-block` with `archived: true`).
     - Delete Drive folders (`drive_client.service.files().delete()`).
-    - Delete Google Docs (handled by folder deletion, but ensure cleanup).
+    - Delete Google Docs (handled by folder deletion, but ensure cleanup). 7510e5a
 - [ ] Task: Implement a `RollbackManager` class in `src/utils.py` to track created IDs and execute cleanup on failure.
 - [ ] Task: Add unit tests for `RollbackManager` and cleanup utilities using mocks.
 - [ ] Task: Conductor - User Manual Verification 'Rollback Utilities' (Protocol in workflow.md)
