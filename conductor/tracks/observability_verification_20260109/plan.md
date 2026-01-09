@@ -4,12 +4,12 @@
 - [x] Task: Update `.env.example` and `.env` (user instruction) to include `PERPLEXITY_API_KEY_PRIMARY` and `PERPLEXITY_API_KEY_FALLBACK`. e49122e
 - [x] Task: Conductor - User Manual Verification 'Configuration' (Protocol in workflow.md)
 
-## Phase 2: `/log` Command Implementation
+## Phase 2: `/log` Command Implementation [checkpoint: 5bff5ef]
 - [x] Task: Create `tests/test_log_command.py` with failing tests for the log retrieval logic (file reading, size limit). d82e9a1
 - [x] Task: Implement `get_logs` function in `src/utils.py` (or similar) to handle safe file reading and tailing. 03c0d4d
 - [x] Task: Update `src/handlers.py` to register the `/log` command handler. 3f021fc
 - [x] Task: Verify `/log` command tests pass. 3f021fc
-- [ ] Task: Conductor - User Manual Verification 'Log Command' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Log Command' (Protocol in workflow.md)
 
 ## Phase 3: Perplexity Client & Integration
 - [ ] Task: Create `tests/test_perplexity_client.py` with failing tests for the dual-key fallback logic and API client wrapper.
