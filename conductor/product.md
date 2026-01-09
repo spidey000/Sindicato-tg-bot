@@ -1,7 +1,7 @@
-# Product Guide: Delegado 360
+# Product Guide: Marxnager
 
 ## Initial Concept
-Delegado 360 is an advanced union assistant for Telegram, designed to empower union delegates by automating legal document generation and providing centralized case management.
+Marxnager is an advanced union assistant for Telegram, designed to empower union delegates by automating legal document generation and providing centralized case management.
 
 ## Target Users
 The primary users are union delegates and representatives who need to efficiently manage labor conflicts, automate formal complaints to the ITSS (Labor Inspection), draft judicial claims, and handle corporate communications with HR.
