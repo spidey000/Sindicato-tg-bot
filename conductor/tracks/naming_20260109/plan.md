@@ -1,7 +1,7 @@
 # Plan: Implement AI-Powered Descriptive Naming
 
 ## Phase 1: AI Agent Enhancement
-- [ ] Task: Update Agent Prompts for Summary Generation
+- [x] Task: Update Agent Prompts for Summary Generation 19bad46
     - [ ] Subtask: Write Tests for Agent Summary: Create unit tests ensuring agents return a JSON/Structured output with a `summary` field.
     - [ ] Subtask: Implement Summary Logic: Modify `src/agents/base.py` (or specific agent classes) to prompt the LLM for a 5-7 word summary alongside the draft.
     - [ ] Subtask: Verify Output: Ensure the summary is stripped of special characters and suitable for file naming.
