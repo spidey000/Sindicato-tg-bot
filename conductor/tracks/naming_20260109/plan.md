@@ -8,10 +8,10 @@
 - [x] Task: Conductor - User Manual Verification 'AI Agent Enhancement' (Protocol in workflow.md) [checkpoint: b1c4942]
 
 ## Phase 2: Integration Client Updates
-- [ ] Task: Update Notion Client for Titles
+- [x] Task: Update Notion Client for Titles
     - [ ] Subtask: Write Tests for Notion Title: Mock Notion API to verify `create_case_page` accepts and uses the new title format.
     - [ ] Subtask: Modify Notion Client: Update `create_case_page` signature to accept `case_title` and use it in the `Name` property.
-- [ ] Task: Update Drive and Docs Clients for Titles
+- [x] Task: Update Drive and Docs Clients for Titles
     - [ ] Subtask: Write Tests for Drive/Docs Naming: Mock Google APIs to verify folder and file creation uses the new naming convention.
     - [ ] Subtask: Modify Drive Client: Update `create_case_folder` to accept `case_name` and use it for the folder name.
     - [ ] Subtask: Modify Docs Client: Update document creation logic to include the summary in the filename.
