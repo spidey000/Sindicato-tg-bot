@@ -48,7 +48,7 @@ class AgentBase(ABC):
         Returns a dict with 'summary', 'content', and 'verification_status'.
         """
         # 1. Generate Initial Draft
-        initial_data = self.generate_structured_draft(context)
+        initial_data = self.generate_structured_draft_with_retry(context)
         initial_content = initial_data.get("content", "")
         
         if not initial_content:
@@ -77,9 +77,15 @@ class AgentBase(ABC):
 
     def generate_structured_draft(self, context: str) -> dict:
         """
+        Legacy wrapper for generate_structured_draft_with_retry.
+        """
+        return self.generate_structured_draft_with_retry(context)
+
+    def generate_structured_draft_with_retry(self, context: str) -> dict:
+        """
         Generates a draft and a short summary, returning a JSON-parsed dictionary.
         Expected keys: 'summary', 'content'.
-        Retries up to 3 times if the output is not valid JSON.
+        Retries up to 3 times if the output is not valid JSON or content is too short.
         """
         system_prompt = self.get_system_prompt()
         json_instruction = (
@@ -130,23 +136,22 @@ class AgentBase(ABC):
                     data["summary"] = f"Caso {context[:10]}..."
                 if "content" not in data:
                     data["content"] = raw_response # Fallback
+
+                # Validation: Check content length > 50 chars
+                if len(data["content"]) <= 50:
+                    logger.warning(f"Draft content too short ({len(data['content'])} chars) on attempt {attempt + 1}.")
+                    raise ValueError("Content too short")
                     
                 return data
                 
-            except json.JSONDecodeError:
-                logger.warning(f"Failed to parse JSON from LLM on attempt {attempt + 1}.")
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"Validation failed on attempt {attempt + 1}: {e}")
                 if attempt == max_retries - 1:
-                    logger.error("All JSON parsing attempts failed. Returning fallback structure.")
-                    return {
-                        "summary": f"Caso {context[:15]}...",
-                        "content": raw_response
-                    }
+                    logger.error("All validation attempts failed.")
+                    raise ValueError("Failed to generate valid draft after multiple attempts.")
                 # Continue to next iteration/retry
         
-        return {
-            "summary": f"Caso {context[:15]}...",
-            "content": "Error generating draft after multiple attempts."
-        }
+        raise ValueError("Unexpected error in retry loop.")
 
     def refine_draft(self, current_content: str, new_info: str) -> str:
         """
