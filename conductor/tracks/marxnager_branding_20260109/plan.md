@@ -14,5 +14,5 @@
 
 ## Phase 3: Verification and Cleanup
 - [x] Task: Run a global search for old branding strings and ensure no user-facing instances remain. 06096db
-- [ ] Task: Verify that a new case generation flow correctly uses "Marxnager" in its automated naming.
+- [x] Task: Verify that a new case generation flow correctly uses "Marxnager" in its automated naming. a679f58
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Verification and Cleanup' (Protocol in workflow.md)
