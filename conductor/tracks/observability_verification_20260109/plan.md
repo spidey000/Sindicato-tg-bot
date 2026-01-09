@@ -15,8 +15,8 @@
 - [x] Task: Create `tests/test_perplexity_client.py` with failing tests for the dual-key fallback logic and API client wrapper. 81d9979
 - [x] Task: Implement `PerplexityClient` in `src/integrations/perplexity_client.py` handling the Sonar LLM request and fallback logic. d8efb45
 - [x] Task: Verify Perplexity client tests pass. d8efb45
-- [ ] Task: Update `src/agents/base.py` (or specific agent classes) to integrate the `Draft -> Verify -> Refine` workflow.
-- [ ] Task: Create `tests/test_agent_verification.py` to verify the agent calls the client and handles the response/failure.
+- [x] Task: Update `src/agents/base.py` (or specific agent classes) to integrate the `Draft -> Verify -> Refine` workflow. 1243201
+- [x] Task: Create `tests/test_agent_verification.py` to verify the agent calls the client and handles the response/failure. aca6a26
 - [ ] Task: Conductor - User Manual Verification 'Perplexity Integration' (Protocol in workflow.md)
 
 ## Phase 4: Final Polish
