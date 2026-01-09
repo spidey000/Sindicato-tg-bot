@@ -102,7 +102,7 @@ Asegúrate de tener el archivo `google_credentials.json` (la clave de tu Service
 
 ### Flujo de Trabajo (Feature K)
 1.  **Grupo**: El delegado usa `/denuncia ...`. El bot confirma y crea los enlaces (Drive/Notion).
-2.  **Privado**: El bot envía un mensaje directo al delegado.
+2.  **Privado**: **Marxnager** envía un mensaje directo al delegado.
 3.  **Enriquecimiento**: El delegado puede enviar fotos, audios o más texto al chat privado para que el bot actualice el expediente y el borrador automáticamente.
 
 ---
