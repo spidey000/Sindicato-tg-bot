@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# App Identity
+APP_NAME = "Marxnager"
+
 # Bot Configuration
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
