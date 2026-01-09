@@ -25,7 +25,7 @@
 - [x] Task: Apply same refactoring to `email_handler`. d352814
 - [x] Task: Conductor - User Manual Verification 'Handlers Integration' (Protocol in workflow.md) 42c3083
 
-## Phase 3: Testing & Polish
+## Phase 3: Testing & Polish [checkpoint: ffe1997]
 - [x] Task: Create `tests/test_progress_updates.py` to mock the bot and verify message edit sequence. e20ae65
 - [x] Task: Verify error handling (ensure `❌` is shown if any step raises exception). e20ae65
 - [ ] Task: Conductor - User Manual Verification 'Testing' (Protocol in workflow.md)
