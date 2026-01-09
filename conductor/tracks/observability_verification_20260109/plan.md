@@ -20,5 +20,5 @@
 - [x] Task: Conductor - User Manual Verification 'Perplexity Integration' (Protocol in workflow.md)
 
 ## Phase 4: Final Polish
-- [ ] Task: Run full regression test suite.
-- [ ] Task: Conductor - User Manual Verification 'Final Polish' (Protocol in workflow.md)
+- [x] Task: Run full regression test suite.
+- [x] Task: Conductor - User Manual Verification 'Final Polish' (Protocol in workflow.md)
