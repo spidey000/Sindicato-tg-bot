@@ -10,7 +10,8 @@ from src.handlers import (
     private_message_handler,
     stop_editing_handler,
     status_handler,
-    update_handler
+    update_handler,
+    log_command
 )
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,7 @@ def main():
 
     # Command Handlers
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("log", log_command))
     application.add_handler(CommandHandler("denuncia", denuncia_handler))
     application.add_handler(CommandHandler("demanda", demanda_handler))
     application.add_handler(CommandHandler("email", email_handler))
