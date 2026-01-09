@@ -27,7 +27,7 @@ Extend the Notion client to support logging the raw verification report as a vis
 - [x] Task: Verify Notion auditing tests pass. 0000000
 - [ ] Task: Conductor - User Manual Verification 'Notion Auditing' (Protocol in workflow.md)
 
-## Phase 4: Full Workflow Integration
+## Phase 4: Full Workflow Integration [checkpoint: f8412a0]
 Tie all components together in the main agent generation loop.
 
 - [x] Task: Update `AgentBase.generate_structured_draft_verified` in `src/agents/base.py` to orchestrate:
