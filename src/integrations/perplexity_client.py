@@ -12,23 +12,39 @@ class PerplexityClient:
         self.api_url = "https://api.perplexity.ai/chat/completions"
         self.model = "sonar-pro" # Using an online model for grounding
 
-    async def verify_draft(self, draft_text: str) -> Optional[str]:
+    async def verify_draft(self, context: str, thesis: str = "", specific_point: str = "", area: str = "") -> Optional[str]:
         """
-        Uses Perplexity API to verify and ground the draft text.
+        Uses Perplexity API to verify and ground the draft text using a specialized Spanish Labor Law prompt.
         Attempts to use the primary key first, then the fallback key.
         """
         
         system_prompt = (
-            "You are a rigorous legal verification assistant. "
-            "Your task is to review the provided legal draft, cross-reference it with "
-            "current Spanish legislation and jurisprudence (using your online capabilities), "
-            "and provide a grounded, verified version or a critique with citations. "
-            "Focus on accuracy and legal validity."
+            "Actúa como abogado laboralista especializado en derecho laboral español. "
+            f"CONTEXTO DEL CASO: {context} "
+            "OBJETIVO: Busca y analiza: "
+            "1. Normativa española aplicable (leyes, reales decretos, convenios colectivos) "
+            f"2. Jurisprudencia del Tribunal Supremo y tribunales superiores que apoye {thesis} "
+            f"3. Doctrina judicial relevante sobre {specific_point} "
+            "REQUISITOS ESPECÍFICOS: "
+            "- Jurisdicción: España "
+            f"- Ámbito: Derecho laboral {area} "
+            "- Cita fuentes verificables con números de sentencia, BOE, o referencias exactas "
+            "- Prioriza jurisprudencia reciente (últimos 5 años) pero incluye doctrina consolidada si es relevante "
+            "- Identifica argumentos contrarios para preparar contraargumentación "
+            "FORMATO DE RESPUESTA: Estructura en: "
+            "(A) Normativa aplicable citada, "
+            "(B) Jurisprudencia favorable con referencias exactas, "
+            "(C) Líneas argumentales principales, "
+            "(D) Posibles debilidades y cómo refutarlas"
         )
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Please verify and ground the following draft:\n\n{draft_text}"}
+            # User message is implicit in the system prompt structure requested, 
+            # but keeping a minimal user trigger is good practice or just empty. 
+            # The spec put everything in one big block. 
+            # I'll put the instruction in system and a trigger in user.
+            {"role": "user", "content": "Por favor, procede con la verificación y análisis jurídico según las instrucciones."}
         ]
 
         payload = {

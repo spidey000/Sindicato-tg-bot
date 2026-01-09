@@ -13,10 +13,10 @@ Implement the logic to extract or generate Case Metadata (Thesis, Specific Point
 ## Phase 2: Perplexity Client Enhancement
 Update the Perplexity integration to use the specialized prompt template and handle dynamic variables.
 
-- [ ] Task: Update `tests/test_perplexity_client.py` to test the new `verify_draft` signature and prompt construction.
-- [ ] Task: Modify `PerplexityClient.verify_draft` in `src/integrations/perplexity_client.py` to accept `context`, `thesis`, `specific_point`, and `area`.
-- [ ] Task: Implement the "Spanish Labor Law Expert" prompt template in `PerplexityClient`.
-- [ ] Task: Verify Perplexity client tests pass.
+- [x] Task: Update `tests/test_perplexity_client.py` to test the new `verify_draft` signature and prompt construction. 0000000
+- [x] Task: Modify `PerplexityClient.verify_draft` in `src/integrations/perplexity_client.py` to accept `context`, `thesis`, `specific_point`, and `area`. 0000000
+- [x] Task: Implement the "Spanish Labor Law Expert" prompt template in `PerplexityClient`. 0000000
+- [x] Task: Verify Perplexity client tests pass. 0000000
 - [ ] Task: Conductor - User Manual Verification 'Enhanced Perplexity Prompt' (Protocol in workflow.md)
 
 ## Phase 3: Notion Auditing Implementation
