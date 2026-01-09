@@ -3,7 +3,7 @@
 ## Phase 1: Documentation and Configuration Update
 - [x] Task: Update `README.md` and `CHANGELOG.md` with new "Marxnager" branding. e8c6881
 - [x] Task: Update `PRD.md` and `conductor/product.md` to reflect the new name. fcd6c1f
-- [ ] Task: Update `src/config.py` (or relevant constants) to use "Marxnager" as the default application name for future Notion/Drive resources.
+- [x] Task: Update `src/config.py` (or relevant constants) to use "Marxnager" as the default application name for future Notion/Drive resources. f8e45ad
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Documentation and Configuration Update' (Protocol in workflow.md)
 
 ## Phase 2: Telegram UI Branding Update
