@@ -25,7 +25,7 @@
 - [x] Task: Conductor - User Manual Verification 'Handler Refactoring and Wiring' (Protocol in workflow.md) [checkpoint: 9854f1b]
 
 ## Phase 4: End-to-End Verification
-- [ ] Task: Full System Test
+- [x] Task: Full System Test 9854f1b
     - [ ] Subtask: Execute E2E Test: Run a full `/denuncia` command flow and verify the actual names created in Notion and Drive (using mocks or a test environment).
     - [ ] Subtask: Verify Fallbacks: Test the system's behavior when the AI summary generation fails (should fallback to ID).
 - [ ] Task: Conductor - User Manual Verification 'End-to-End Verification' (Protocol in workflow.md)
