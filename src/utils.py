@@ -1,5 +1,6 @@
 from datetime import datetime
 import random
+import os
 
 def generate_case_id(type_prefix="D", last_id=None):
     """
@@ -25,3 +26,29 @@ def generate_case_id(type_prefix="D", last_id=None):
 
     # Default / Fallback
     return f"{type_prefix}-{year}-001"
+
+def get_logs(file_path, max_bytes=10485760):
+    """
+    Retrieves the content of a log file, strictly limited to the last `max_bytes`.
+    Defaults to 10MB.
+    
+    Args:
+        file_path (str): The path to the log file.
+        max_bytes (int): The maximum number of bytes to read from the end of the file.
+
+    Returns:
+        str: The log content, or None if the file does not exist.
+    """
+    if not os.path.exists(file_path):
+        return None
+
+    try:
+        file_size = os.path.getsize(file_path)
+        with open(file_path, 'rb') as f:
+            if file_size > max_bytes:
+                f.seek(-max_bytes, 2) # Seek from end
+            content = f.read()
+            return content.decode('utf-8', errors='replace')
+    except Exception as e:
+        print(f"Error reading log file: {e}")
+        return None
