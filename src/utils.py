@@ -1,6 +1,7 @@
 from datetime import datetime
 import random
 import os
+from telegram.error import BadRequest
 
 def generate_case_id(type_prefix="D", last_id=None):
     """
@@ -101,5 +102,10 @@ async def update_progress_message(context, chat_id, message_id, steps_status):
             text=message_text,
             parse_mode='Markdown'
         )
+    except BadRequest as e:
+        if str(e).startswith("Message is not modified"):
+            pass
+        else:
+            print(f"Error updating progress message: {e}")
     except Exception as e:
         print(f"Error updating progress message: {e}")

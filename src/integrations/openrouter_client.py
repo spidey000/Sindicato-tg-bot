@@ -16,7 +16,7 @@ class OpenRouterClient:
             "X-Title": "Sindicato TG Bot"
         }
 
-    def completion(self, messages: list, model: str = None) -> str:
+    def completion(self, messages: list, model: str = None, response_format: dict = None) -> str:
         """
         Generates a completion using OpenRouter.
         Tries the primary model first, then falls back to the secondary model.
@@ -28,24 +28,27 @@ class OpenRouterClient:
         target_model = model or MODEL_PRIMARY
         
         try:
-            return self._make_request(messages, target_model)
+            return self._make_request(messages, target_model, response_format)
         except Exception as e:
             logger.error(f"Error with primary model {target_model}: {e}")
             if target_model != MODEL_FALLBACK:
                 logger.info(f"Retrying with fallback model: {MODEL_FALLBACK}")
                 try:
-                    return self._make_request(messages, MODEL_FALLBACK)
+                    return self._make_request(messages, MODEL_FALLBACK, response_format)
                 except Exception as e2:
                     logger.error(f"Error with fallback model {MODEL_FALLBACK}: {e2}")
                     return f"Error generating text: {e2}"
             else:
                 return f"Error generating text: {e}"
 
-    def _make_request(self, messages: list, model: str) -> str:
+    def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
         payload = {
             "model": model,
             "messages": messages
         }
+        
+        if response_format:
+            payload["response_format"] = response_format
         
         response = requests.post(
             f"{self.base_url}/chat/completions",

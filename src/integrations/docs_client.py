@@ -36,11 +36,12 @@ class DelegadoDocsClient:
             doc_id = doc.get('documentId')
             
             # 2. Insert Content
+            text_to_insert = content if content else "(Contenido vacío)"
             requests = [
                 {
                     'insertText': {
                         'location': {'index': 1},
-                        'text': content
+                        'text': text_to_insert
                     }
                 }
             ]

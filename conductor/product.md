@@ -14,6 +14,7 @@ The primary users are union delegates and representatives who need to efficientl
 - **Smart Naming & ID System:** Automatic assignment of sequential IDs (e.g., D-2026-001) and descriptive titles (ID - Summary) for all created artifacts.
 - **Dual Workflow:** Public group commands for team visibility and transparency, with a seamless transition to a secure private chat for deep work and sensitive evidence handling.
 - **Action Logging:** Implementation of a `/log` command that retrieves and sends the system's action log file as a reply in the channel for easy auditing and troubleshooting.
+- **Real-time Progress Tracking:** A dynamic checklist system that provides live visual feedback (bold/strikethrough) during document generation workflows, improving user transparency.
 
 ## User Experience (UX) Goals
 - **Efficiency:** Drastically reduce the time required to move from an initial incident report to a formal legal draft.
