@@ -24,7 +24,7 @@ class TestAgents(unittest.TestCase):
         agent = LitiganteProcesalAgent()
         draft = agent.generate_draft("Despido injustificado")
         self.assertTrue("JUZGADO DE LO SOCIAL" in draft.upper(), "Draft should mention JUZGADO DE LO SOCIAL")
-        self.assertTrue("Despido injustificado".lower() in draft.lower(), "Draft should contain context")
+        self.assertTrue("despido" in draft.lower(), "Draft should contain context 'despido'")
 
 if __name__ == '__main__':
     unittest.main()

@@ -9,11 +9,14 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
     @patch("src.handlers.docs")
     @patch("src.handlers.agent_orchestrator")
     @patch("src.middleware.AUTHORIZED_USERS", [12345])
-    async def test_denuncia_handler_uses_summary(self, mock_orchestrator, mock_docs, mock_drive, mock_notion):
+    @patch("src.handlers.send_progress_message")
+    @patch("src.handlers.update_progress_message")
+    async def test_denuncia_handler_uses_summary(self, mock_update_prog, mock_send_prog, mock_orchestrator, mock_docs, mock_drive, mock_notion):
         # Setup
         update = MagicMock()
         update.effective_user.id = 12345
         update.effective_user.first_name = "User"
+        update.effective_chat.id = 123
         update.message.reply_text = AsyncMock()
         
         context = MagicMock()
@@ -22,14 +25,13 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         
         # Mock Agent
         mock_agent = MagicMock()
-        # Mock async verified draft generation
-        mock_agent.generate_structured_draft_verified = AsyncMock(return_value={
+        # Mock granular methods
+        mock_agent.generate_structured_draft.return_value = {
             "summary": "Resumen IA",
-            "content": "Contenido IA",
-            "verification_status": "Verified"
-        })
-        # Fallback for old method if called
-        mock_agent.generate_draft.return_value = "Old Content"
+            "content": "Contenido IA"
+        }
+        mock_agent.verify_draft_content = AsyncMock(return_value=None) 
+        mock_agent.refine_draft_with_feedback.return_value = "Contenido IA Refinado"
         
         mock_orchestrator.get_agent_for_command.return_value = mock_agent
         
@@ -43,8 +45,9 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         # Action
         await denuncia_handler(update, context)
         
-        # Verify Agent called with generate_structured_draft_verified
-        mock_agent.generate_structured_draft_verified.assert_called_once()
+        # Verify Agent called with generate_structured_draft
+        mock_agent.generate_structured_draft.assert_called_once()
+        mock_agent.verify_draft_content.assert_called_once()
         
         # Verify Notion called with title containing summary
         args, kwargs = mock_notion.create_case_page.call_args

@@ -69,10 +69,12 @@ class PerplexityClient:
                 
                 if response.status_code == 200:
                     data = response.json()
-                    return data["choices"][0]["message"]["content"]
+                    content = data["choices"][0]["message"]["content"]
+                    logger.info(f"✅ Perplexity Verification SUCCESS. Status Code: 200. Response Length: {len(content)} characters.")
+                    return content
                 else:
-                    logger.error(f"Perplexity API Error: {response.status_code} - {response.text}")
+                    logger.error(f"❌ Perplexity Verification FAILURE. Status Code: {response.status_code}. Error: {response.text}")
                     return None
         except Exception as e:
-            logger.error(f"Perplexity Connection Error: {e}")
+            logger.error(f"❌ Perplexity Verification EXCEPTION. Error: {str(e)}")
             return None
