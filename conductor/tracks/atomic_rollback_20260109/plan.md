@@ -12,7 +12,7 @@
     - Delete Notion pages (`API-update-a-block` with `archived: true`).
     - Delete Drive folders (`drive_client.service.files().delete()`).
     - Delete Google Docs (handled by folder deletion, but ensure cleanup). 7510e5a
-- [ ] Task: Implement a `RollbackManager` class in `src/utils.py` to track created IDs and execute cleanup on failure.
+- [x] Task: Implement a `RollbackManager` class in `src/utils.py` to track created IDs and execute cleanup on failure. 77f72a6
 - [ ] Task: Add unit tests for `RollbackManager` and cleanup utilities using mocks.
 - [ ] Task: Conductor - User Manual Verification 'Rollback Utilities' (Protocol in workflow.md)
 
