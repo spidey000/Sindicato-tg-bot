@@ -15,7 +15,7 @@ class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
         mock_router = MagicMock()
         mock_router_cls.return_value = mock_router
         mock_router.completion.side_effect = [
-            '{"summary": "Test Summary", "content": "Initial Draft"}', # First call: Initial
+            '{"summary": "Test Summary", "content": "This is a very long initial draft that serves to pass the validation check requiring fifty characters."}', # First call: Initial
             "Refined Draft" # Second call: Refinement
         ]
         
@@ -36,7 +36,7 @@ class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["verification_status"], "Verified")
         
         # Verify calls
-        mock_pplx.verify_draft.assert_called_once_with("Initial Draft")
+        mock_pplx.verify_draft.assert_called_once_with("This is a very long initial draft that serves to pass the validation check requiring fifty characters.")
         self.assertEqual(mock_router.completion.call_count, 2) # Initial + Refine
 
     @patch("src.agents.base.PerplexityClient")
@@ -45,7 +45,7 @@ class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
         # Setup Router Mock
         mock_router = MagicMock()
         mock_router_cls.return_value = mock_router
-        mock_router.completion.return_value = '{"summary": "Test Summary", "content": "Initial Draft"}'
+        mock_router.completion.return_value = '{"summary": "Test Summary", "content": "This is a very long initial draft that serves to pass the validation check requiring fifty characters."}'
         
         # Setup Perplexity Mock (Failure)
         mock_pplx = MagicMock()
@@ -59,7 +59,7 @@ class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
         result = await agent.generate_structured_draft_verified("Context")
         
         # Verify
-        self.assertEqual(result["content"], "Initial Draft")
+        self.assertEqual(result["content"], "This is a very long initial draft that serves to pass the validation check requiring fifty characters.")
         self.assertEqual(result["verification_status"], "Verification Failed")
         
         # Verify calls

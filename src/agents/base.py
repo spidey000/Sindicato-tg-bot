@@ -177,4 +177,5 @@ class AgentBase(ABC):
             {"role": "user", "content": refinement_prompt}
         ]
         
-        
+        logger.info(f"Refining draft with {self.__class__.__name__}...")
+        return self.llm_client.completion(messages)

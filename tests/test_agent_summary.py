@@ -15,7 +15,7 @@ class TestAgentSummary(unittest.TestCase):
         mock_client = MockOpenRouterClient.return_value
         # The LLM will eventually return a JSON string that the agent parses
         # For now, we mock the return value of the client to be that JSON string
-        mock_client.completion.return_value = '{"summary": "Short Title", "content": "Full Draft Content"}'
+        mock_client.completion.return_value = '{"summary": "Short Title", "content": "This content is definitely long enough to pass the validation check which requires more than fifty characters."}'
         
         agent = TestAgent()
         
@@ -27,7 +27,7 @@ class TestAgentSummary(unittest.TestCase):
         self.assertIn("summary", result)
         self.assertIn("content", result)
         self.assertEqual(result["summary"], "Short Title")
-        self.assertEqual(result["content"], "Full Draft Content")
+        self.assertEqual(result["content"], "This content is definitely long enough to pass the validation check which requires more than fifty characters.")
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,9 +42,10 @@ class TestPerplexityClient(unittest.IsolatedAsyncioTestCase):
         mock_client = AsyncMock()
         mock_client_cls.return_value.__aenter__.return_value = mock_client
         
-        # Primary fails (401)
+        # Primary fails (401) - Needs to fail 3 times to trigger fallback
         mock_response_fail = MagicMock()
         mock_response_fail.status_code = 401
+        mock_response_fail.text = "Unauthorized"
         
         # Fallback succeeds (200)
         mock_response_success = MagicMock()
@@ -53,7 +54,10 @@ class TestPerplexityClient(unittest.IsolatedAsyncioTestCase):
             "choices": [{"message": {"content": "Fallback content"}}]
         }
         
-        mock_client.post.side_effect = [mock_response_fail, mock_response_success]
+        mock_client.post.side_effect = [
+            mock_response_fail, mock_response_fail, mock_response_fail, 
+            mock_response_success
+        ]
 
         # Init client
         client = perplexity_client.PerplexityClient()
@@ -63,11 +67,11 @@ class TestPerplexityClient(unittest.IsolatedAsyncioTestCase):
         
         # Verify
         self.assertEqual(result, "Fallback content")
-        self.assertEqual(mock_client.post.call_count, 2)
+        self.assertEqual(mock_client.post.call_count, 4)
         
-        # Check second call headers
-        second_call_args = mock_client.post.call_args_list[1]
-        headers = second_call_args.kwargs["headers"]
+        # Check 4th call headers (First call of fallback key)
+        fourth_call_args = mock_client.post.call_args_list[3]
+        headers = fourth_call_args.kwargs["headers"]
         self.assertEqual(headers["Authorization"], f"Bearer {self.fallback_key}")
 
     @patch("src.integrations.perplexity_client.httpx.AsyncClient")
