@@ -12,7 +12,7 @@
 - [x] Task: Update `/help` command text in `src/handlers.py`. 6aaaa1e
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Telegram UI Branding Update' (Protocol in workflow.md) f21119a
 
-## Phase 3: Verification and Cleanup
+## Phase 3: Verification and Cleanup [checkpoint: a32bb62]
 - [x] Task: Run a global search for old branding strings and ensure no user-facing instances remain. 06096db
 - [x] Task: Verify that a new case generation flow correctly uses "Marxnager" in its automated naming. a679f58
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Verification and Cleanup' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Verification and Cleanup' (Protocol in workflow.md) a32bb62
