@@ -74,6 +74,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 @restricted
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for the /help command."""
+    await update.message.reply_text(
+        "🛠️ *CENTRO DE AYUDA MARXNAGER*\n\n"
+        "Este bot ayuda a los delegados sindicales a automatizar la gestión de expedientes y documentos legales.\n\n"
+        "*Comandos Principales:*\n"
+        "• `/denuncia [hechos]` - Inicia un expediente de denuncia ante la ITSS. La IA generará un borrador basado en tu descripción.\n"
+        "• `/demanda [tipo] [hechos]` - Inicia un borrador de demanda judicial (despido, cantidad, etc.).\n"
+        "• `/email [asunto] [mensaje]` - Redacta un correo formal para RRHH.\n"
+        "• `/status [ID] [estado]` - Actualiza el estado de un expediente en Notion.\n"
+        "• `/update` - (Solo en privado) Muestra tus casos activos para añadir detalles o pruebas.\n"
+        "• `/log` - Obtiene los registros del sistema (solo administradores).\n"
+        "• `/stop` - Finaliza el modo edición en el chat privado.\n\n"
+        "💡 *Consejo:* Usa el botón '🔒 Continuar en Privado' tras crear un caso para enviar fotos, audios y refinar el texto con la IA.",
+        parse_mode='Markdown'
+    )
+
+@restricted
 async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for the /denuncia command."""
     context_args = " ".join(context.args)
