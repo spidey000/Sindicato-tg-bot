@@ -29,6 +29,19 @@ class AgentBase(ABC):
         logger.info(f"Generating draft with {self.__class__.__name__} using OpenRouter...")
         return self.llm_client.completion(messages)
 
+    async def verify_draft_content(self, content: str) -> str:
+        """
+        Public method to verify draft content using Perplexity.
+        """
+        return await self.pplx_client.verify_draft(content)
+
+    def refine_draft_with_feedback(self, content: str, feedback: str) -> str:
+        """
+        Refines the draft based on explicit verification feedback.
+        """
+        refinement_instruction = f"VERIFICACIÓN LEGAL OBLIGATORIA:\n{feedback}"
+        return self.refine_draft(content, refinement_instruction)
+
     async def generate_structured_draft_verified(self, context: str) -> dict:
         """
         Generates a draft, verifies it with Perplexity (Sonar LLM), and refines it.
