@@ -10,7 +10,7 @@ Implement the logic to extract or generate Case Metadata (Thesis, Specific Point
 - [x] Task: Verify metadata extraction tests pass. 0000000
 - [ ] Task: Conductor - User Manual Verification 'Metadata Extraction' (Protocol in workflow.md)
 
-## Phase 2: Perplexity Client Enhancement
+## Phase 2: Perplexity Client Enhancement [checkpoint: 19c4b73]
 Update the Perplexity integration to use the specialized prompt template and handle dynamic variables.
 
 - [x] Task: Update `tests/test_perplexity_client.py` to test the new `verify_draft` signature and prompt construction. 0000000
