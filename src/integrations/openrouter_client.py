@@ -50,17 +50,30 @@ class OpenRouterClient:
         if response_format:
             payload["response_format"] = response_format
         
-        response = requests.post(
-            f"{self.base_url}/chat/completions",
-            headers=self.headers,
-            data=json.dumps(payload),
-            timeout=60 # Reasonable timeout for LLMs
-        )
+        max_retries = 3
+        retry_delay = 1
         
-        response.raise_for_status()
-        data = response.json()
-        
-        if "choices" in data and len(data["choices"]) > 0:
-            return data["choices"][0]["message"]["content"]
-        else:
-            raise ValueError(f"Invalid response from OpenRouter: {data}")
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    f"{self.base_url}/chat/completions",
+                    headers=self.headers,
+                    data=json.dumps(payload),
+                    timeout=60 # Reasonable timeout for LLMs
+                )
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                if "choices" in data and len(data["choices"]) > 0:
+                    return data["choices"][0]["message"]["content"]
+                else:
+                    raise ValueError(f"Invalid response from OpenRouter: {data}")
+            
+            except (requests.exceptions.RequestException, ValueError) as e:
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed for {model}: {e}")
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(retry_delay * (2 ** attempt)) # Exponential backoff
+                else:
+                    raise e
