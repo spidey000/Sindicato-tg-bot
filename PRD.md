@@ -3,7 +3,7 @@
 # Esta es la versión definitiva del PRD (Documento de Requisitos del Producto), integrando la Dualidad de Entorno (Grupo/Privado) y el Control de Acceso Estricto.
 
 Este diseño garantiza que el bot sea una herramienta de trabajo potente sin saturar la comunicación social del grupo sindical.
-PRD: Sistema "Delegado 360" (Versión Final)
+PRD: Sistema "Marxnager" (Versión Final)
 
 1. Visión y Control de Acceso
 El bot actúa como un asistente jurídico-administrativo exclusivo para delegados autorizados.
@@ -60,7 +60,7 @@ Flujo de Trabajo Refinado:
 
 Mira qué desarrollo más extenso ha hecho otra ia del punto 6
 
-# PRD: Sistema "Delegado 360" - Definición de Prompts de Agentes
+# PRD: Sistema "Marxnager" - Definición de Prompts de Agentes
 
 ## 6. Definición de Prompts de Agentes (Detallado)
 
@@ -437,13 +437,13 @@ Voy a desarrollar **todos** los puntos del PRD con el mismo rigor que la otra IA
 
 ***
 
-# PRD: Sistema "Delegado 360" - Versión Completa y Detallada
+# PRD: Sistema "Marxnager" - Versión Completa y Detallada
 
 ## 1. Visión y Control de Acceso
 
 ### 1.1 Filosofía del Sistema
 
-El sistema "Delegado 360" es una herramienta de empoderamiento legal y administrativo diseñada para transformar la forma en que los delegados sindicales gestionan conflictos laborales. No es un bot de propósito general, sino un **asistente jurídico especializado** que combina:
+El sistema "Marxnager" es una herramienta de empoderamiento legal y administrativo diseñada para transformar la forma en que los delegados sindicales gestionan conflictos laborales. No es un bot de propósito general, sino un **asistente jurídico especializado** que combina:
 
 - **Inteligencia Artificial Generativa**: Para crear documentación legal de calidad profesional
 - **Automatización de Flujos**: Para eliminar trabajo administrativo repetitivo
@@ -845,7 +845,7 @@ Cada acción sobre un expediente genera una entrada:
 ### 3.3 Jerarquía de Carpetas en Google Drive
 
 ```
-📁 Delegado 360 - Expedientes
+📁 Marxnager - Expedientes
 │
 ├── 📁 2026
 │   ├── 📁 Denuncias ITSS
@@ -1581,7 +1581,7 @@ Respuesta:
 ### 7.1 Estructura Completa de Drive
 
 ```
-📁 Delegado 360 - Expedientes/
+📁 Marxnager - Expedientes/
 │
 ├── 📄 README.md (Guía de uso del sistema de carpetas)
 │
