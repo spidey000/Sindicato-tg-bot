@@ -3,7 +3,7 @@
 ## Phase 1: LLM Reliability & Validation [checkpoint: ]
 - [x] Task: Update `OpenRouterClient._make_request` to support `response_format` and handle retries (3 attempts). 2399910
 - [x] Task: Implement `AgentBase.generate_structured_draft_with_retry` that validates JSON and minimum content length (> 50 chars). bc80738
-- [ ] Task: Refactor `pplx_client.verify_draft` to include retry logic.
+- [x] Task: Refactor `pplx_client.verify_draft` to include retry logic. 2911bce
 - [ ] Task: Add unit tests for retry logic and JSON validation (mocking API failures and short responses).
 - [ ] Task: Conductor - User Manual Verification 'LLM Reliability' (Protocol in workflow.md)
 
