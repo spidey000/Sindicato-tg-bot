@@ -3,11 +3,11 @@
 ## Phase 1: Core Logic & Helpers
 - [x] Task: Create `src/utils.py` helper function `send_progress_message(update, steps)` that sends the initial message and returns the `message_id`. 709f9b8
 - [x] Task: Create `src/utils.py` helper function `update_progress_message(context, chat_id, message_id, steps_status)` to edit the existing message. ceb0b88
-- [ ] Task: Refactor `AgentBase` in `src/agents/base.py` to expose granular methods:
+- [x] Task: Refactor `AgentBase` in `src/agents/base.py` to expose granular methods:
     - Ensure `generate_structured_draft` is public and accessible.
     - Expose `verify_draft_content` (wrapping `pplx_client.verify_draft`).
     - Expose `refine_draft_with_feedback` (the refinement logic).
-    - *Alternatively, keep `generate_structured_draft_verified` but add a `callback` parameter.* (Decided: Split for better control in handlers).
+    - *Alternatively, keep `generate_structured_draft_verified` but add a `callback` parameter.* (Decided: Split for better control in handlers). 5ea606a
 - [ ] Task: Conductor - User Manual Verification 'Core Logic' (Protocol in workflow.md)
 
 ## Phase 2: Handler Integration (`/denuncia`, `/demanda`, `/email`)
