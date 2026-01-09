@@ -89,9 +89,12 @@ class AgentBase(ABC):
         """
         system_prompt = self.get_system_prompt()
         json_instruction = (
-            "\n\nIMPORTANT: Return your response in pure JSON format with two keys:\n"
+            "\n\nIMPORTANT: Return your response in pure JSON format with the following keys:\n"
             "- 'summary': A concise summary of the topic (max 5-7 words), e.g., 'Falta de EPIs'.\n"
             "- 'content': The full drafted document content.\n"
+            "- 'thesis': The central legal argument (e.g., 'Nulidad del despido por discriminación').\n"
+            "- 'specific_point': Key legal doctrine to research (e.g., 'Inversión de la carga de la prueba').\n"
+            "- 'area': Specific labor law domain (e.g., 'Despido', 'Modificación sustancial').\n"
             "Do not include markdown formatting (like ```json) around the JSON."
         )
         
@@ -136,6 +139,14 @@ class AgentBase(ABC):
                     data["summary"] = f"Caso {context[:10]}..."
                 if "content" not in data:
                     data["content"] = raw_response # Fallback
+                
+                # Metadata defaults
+                if "thesis" not in data:
+                    data["thesis"] = ""
+                if "specific_point" not in data:
+                    data["specific_point"] = ""
+                if "area" not in data:
+                    data["area"] = ""
 
                 # Validation: Check content length > 50 chars
                 if len(data["content"]) <= 50:
