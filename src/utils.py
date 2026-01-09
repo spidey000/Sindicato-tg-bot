@@ -70,3 +70,36 @@ async def send_progress_message(update, steps):
     
     sent_message = await update.message.reply_text(message_text, parse_mode='Markdown')
     return sent_message.message_id
+
+async def update_progress_message(context, chat_id, message_id, steps_status):
+    """
+    Updates the existing progress message with the current status of each step.
+    
+    Args:
+        context: The Telegram Context object.
+        chat_id (int): The ID of the chat.
+        message_id (int): The ID of the message to edit.
+        steps_status (list of tuples): List of (step_name, status).
+                                       Status can be "pending", "completed", "failed".
+    """
+    formatted_steps = []
+    
+    for step_name, status in steps_status:
+        if status == "completed":
+            formatted_steps.append(f"✅ **{step_name}**")
+        elif status == "failed":
+            formatted_steps.append(f"❌ **{step_name}**")
+        else:
+            formatted_steps.append(f"~_{step_name}_~")
+            
+    message_text = f"🔄 *Procesando solicitud...*\n\n" + "\n".join(formatted_steps)
+    
+    try:
+        await context.bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=message_text,
+            parse_mode='Markdown'
+        )
+    except Exception as e:
+        print(f"Error updating progress message: {e}")
