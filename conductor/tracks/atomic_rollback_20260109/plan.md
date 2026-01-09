@@ -17,10 +17,10 @@
 - [x] Task: Conductor - User Manual Verification 'Rollback Utilities' (Protocol in workflow.md) 0aafe2e
 
 ## Phase 3: Handler Integration & Error Reporting [checkpoint: ]
-- [ ] Task: Audit `denuncia_handler`, `demanda_handler`, and `email_handler` to confirm they all have Notion creation, Drive folder creation, and Doc draft file creation logic. Add missing logic if found (using `demanda_handler` as the template).
-- [ ] Task: Refactor `denuncia_handler` in `src/handlers.py` to use `RollbackManager` and updated agent methods.
-- [ ] Task: Implement detailed error reporting in `update_progress_message` when a rollback occurs.
-- [ ] Task: Apply refactoring and rollback logic to `demanda_handler`.
-- [ ] Task: Apply refactoring and rollback logic to `email_handler`.
-- [ ] Task: Create an E2E test case that simulates a failure mid-process (e.g., mock Drive failure) and verifies all previous artifacts are deleted and the user is notified.
+- [x] Task: Audit `denuncia_handler`, `demanda_handler`, and `email_handler` to confirm they all have Notion creation, Drive folder creation, and Doc draft file creation logic. Add missing logic if found (using `demanda_handler` as the template). 2e11c0c
+- [x] Task: Refactor `denuncia_handler` in `src/handlers.py` to use `RollbackManager` and updated agent methods. 2e11c0c
+- [x] Task: Implement detailed error reporting in `update_progress_message` when a rollback occurs. 2e11c0c
+- [x] Task: Apply refactoring and rollback logic to `demanda_handler`. 2e11c0c
+- [x] Task: Apply refactoring and rollback logic to `email_handler`. 2e11c0c
+- [x] Task: Create an E2E test case that simulates a failure mid-process (e.g., mock Drive failure) and verifies all previous artifacts are deleted and the user is notified. 2e11c0c
 - [ ] Task: Conductor - User Manual Verification 'Handler Integration' (Protocol in workflow.md)
