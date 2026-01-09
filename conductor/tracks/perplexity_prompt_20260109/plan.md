@@ -22,9 +22,9 @@ Update the Perplexity integration to use the specialized prompt template and han
 ## Phase 3: Notion Auditing Implementation
 Extend the Notion client to support logging the raw verification report as a visible block in the case page.
 
-- [ ] Task: Create `tests/test_notion_audit_log.py` to verify appending a toggle block to a page.
-- [ ] Task: Implement `append_verification_report` in `src/integrations/notion_client.py` using Notion's block append API (Toggle or Callout).
-- [ ] Task: Verify Notion auditing tests pass.
+- [x] Task: Create `tests/test_notion_audit_log.py` to verify appending a toggle block to a page. 0000000
+- [x] Task: Implement `append_verification_report` in `src/integrations/notion_client.py` using Notion's block append API (Toggle or Callout). 0000000
+- [x] Task: Verify Notion auditing tests pass. 0000000
 - [ ] Task: Conductor - User Manual Verification 'Notion Auditing' (Protocol in workflow.md)
 
 ## Phase 4: Full Workflow Integration

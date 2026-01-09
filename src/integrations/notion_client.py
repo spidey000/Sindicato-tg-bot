@@ -223,6 +223,55 @@ class DelegadoNotionClient:
             logger.error(f"Error archiving Notion page {page_id}: {e}")
             return False
 
+    def append_verification_report(self, page_id: str, report_content: str) -> bool:
+        """
+        Appends the Perplexity verification report as a toggle block to the Notion page.
+        """
+        if not self.client:
+            return False
+
+        try:
+            # Construct the toggle block with the report as a child paragraph
+            # Truncate content if it's too long for a single paragraph (Notion limit is 2000 chars per block)
+            # For simplicity, we'll just send it and let the client handle it, 
+            # but ideally we'd split it if needed.
+            
+            # Split content into chunks of 2000 chars if necessary
+            chunks = [report_content[i:i+2000] for i in range(0, len(report_content), 2000)]
+            child_blocks = [
+                {
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": chunk}}]
+                    }
+                } for chunk in chunks
+            ]
+
+            children = [
+                {
+                    "type": "toggle",
+                    "toggle": {
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {"content": "🔍 Auditoría de Verificación Legal (Perplexity)"}
+                            }
+                        ],
+                        "children": child_blocks
+                    }
+                }
+            ]
+
+            self.client.blocks.children.append(
+                block_id=page_id,
+                children=children
+            )
+            logger.info(f"Verification report appended to Notion page {page_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error appending verification report to Notion: {e}")
+            return False
+
     def get_last_case_id(self, type_prefix: str) -> Optional[str]:
         """
         Retrieves the last used Case ID for a given prefix (e.g., 'D', 'J') in the current year.
