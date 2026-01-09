@@ -210,6 +210,19 @@ class DelegadoNotionClient:
             logger.error(f"Error retrieving case links: {e}")
             return {}
 
+    def delete_page(self, page_id: str) -> bool:
+        """
+        Hard deletes (archives) a Notion page.
+        """
+        if not self.client: return False
+        try:
+            self.client.pages.update(page_id=page_id, archived=True)
+            logger.info(f"Notion page {page_id} archived (deleted).")
+            return True
+        except Exception as e:
+            logger.error(f"Error archiving Notion page {page_id}: {e}")
+            return False
+
     def get_last_case_id(self, type_prefix: str) -> Optional[str]:
         """
         Retrieves the last used Case ID for a given prefix (e.g., 'D', 'J') in the current year.

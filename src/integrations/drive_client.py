@@ -120,6 +120,19 @@ class DelegadoDriveClient:
             logger.error(f"Error finding doc in folder: {e}")
             return None
 
+    def delete_file_or_folder(self, file_id: str) -> bool:
+        """
+        Permanently deletes a file or folder from Drive.
+        """
+        if not self.service: return False
+        try:
+            self.service.files().delete(fileId=file_id).execute()
+            logger.info(f"Drive object {file_id} deleted permanently.")
+            return True
+        except Exception as e:
+            logger.error(f"Error deleting Drive object {file_id}: {e}")
+            return False
+
     def share_file(self, file_id: str, email: str, role: str = "writer") -> bool:
         """Shares a file or folder with a specific email."""
         if not self.service: return False
