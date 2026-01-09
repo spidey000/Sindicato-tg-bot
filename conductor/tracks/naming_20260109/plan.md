@@ -15,7 +15,7 @@
     - [ ] Subtask: Write Tests for Drive/Docs Naming: Mock Google APIs to verify folder and file creation uses the new naming convention.
     - [ ] Subtask: Modify Drive Client: Update `create_case_folder` to accept `case_name` and use it for the folder name.
     - [ ] Subtask: Modify Docs Client: Update document creation logic to include the summary in the filename.
-- [ ] Task: Conductor - User Manual Verification 'Integration Client Updates' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Integration Client Updates' (Protocol in workflow.md) [checkpoint: a94f3dc]
 
 ## Phase 3: Handler Refactoring and Wiring
 - [ ] Task: Refactor Command Handlers
