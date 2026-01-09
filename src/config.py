@@ -28,6 +28,10 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 MODEL_PRIMARY = os.getenv("MODEL_PRIMARY", "deepseek/deepseek-r1:free")
 MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "moonshotai/moonlight-2:free")
 
+# Perplexity Configuration
+PERPLEXITY_API_KEY_PRIMARY = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
+PERPLEXITY_API_KEY_FALLBACK = os.getenv("PERPLEXITY_API_KEY_FALLBACK")
+
 # Drive Configuration
 DRIVE_FOLDER_DENUNCIAS = os.getenv("DRIVE_FOLDER_DENUNCIAS")
 DRIVE_FOLDER_DEMANDAS = os.getenv("DRIVE_FOLDER_DEMANDAS")

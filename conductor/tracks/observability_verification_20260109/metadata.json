@@ -1,0 +1,8 @@
+{
+  "track_id": "observability_verification_20260109",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-01-09T10:00:00Z",
+  "updated_at": "2026-01-09T10:00:00Z",
+  "description": "Implementation of /log command for observability and Perplexity Sonar Two-Stage Verification for legal drafts."
+}
