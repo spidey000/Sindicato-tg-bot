@@ -2,7 +2,7 @@
 
 This plan implements a more robust legal verification workflow by using a specialized Spanish Labor Law prompt for Perplexity, dynamically extracting case metadata, and logging the raw verification results to Notion for auditing.
 
-## Phase 1: Metadata Extraction & Agent Logic
+## Phase 1: Metadata Extraction & Agent Logic [checkpoint: 9aba70a]
 Implement the logic to extract or generate Case Metadata (Thesis, Specific Point, Legal Area) during the drafting process.
 
 - [x] Task: Create `tests/test_metadata_extraction.py` to verify the extraction of legal thesis and area from draft content. 0000000
