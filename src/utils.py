@@ -109,3 +109,64 @@ async def update_progress_message(context, chat_id, message_id, steps_status):
             print(f"Error updating progress message: {e}")
     except Exception as e:
         print(f"Error updating progress message: {e}")
+
+class RollbackManager:
+    """
+    Manages the lifecycle of created artifacts (Notion, Drive, etc.)
+    and handles automatic cleanup if a process fails.
+    """
+    def __init__(self):
+        self.notion_page_id = None
+        self.drive_folder_id = None
+        self.doc_id = None
+        self.failed_step = None
+        self.error_message = None
+
+    def set_notion_page(self, page_id: str):
+        self.notion_page_id = page_id
+
+    def set_drive_folder(self, folder_id: str):
+        self.drive_folder_id = folder_id
+
+    def set_doc(self, doc_id: str):
+        self.doc_id = doc_id
+
+    def trigger_failure(self, step_name: str, error: Exception):
+        """Marks the point of failure."""
+        self.failed_step = step_name
+        self.error_message = str(error)
+
+    async def execute_rollback(self) -> str:
+        """
+        Deletes all tracked artifacts and returns a detailed status message.
+        """
+        from src.integrations.cleanup_helper import delete_notion_page, delete_drive_object
+        
+        reverted_items = []
+        
+        # Note: Deleting a folder in Drive also deletes the Docs inside it.
+        # But we track doc_id just in case or for granular reporting.
+        
+        if self.drive_folder_id:
+            if delete_drive_object(self.drive_folder_id):
+                reverted_items.append("Carpeta en Drive eliminada")
+        elif self.doc_id:
+            if delete_drive_object(self.doc_id):
+                reverted_items.append("Documento eliminado")
+        
+        if self.notion_page_id:
+            if delete_notion_page(self.notion_page_id):
+                reverted_items.append("Página de Notion eliminada")
+        
+        if not reverted_items:
+            rollback_summary = "No se crearon artefactos para revertir."
+        else:
+            rollback_summary = "Revirtiendo cambios: " + ", ".join(reverted_items) + "."
+            
+        final_report = (
+            f"❌ **Error Crítico en '{self.failed_step}'**\n"
+            f"Causa: {self.error_message}\n\n"
+            f"⚠️ {rollback_summary}"
+        )
+        return final_report
+
