@@ -62,19 +62,28 @@ class PerplexityClient:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
+        
+        max_retries = 3
+        retry_delay = 1
 
-        try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                response = await client.post(self.api_url, json=payload, headers=headers)
-                
-                if response.status_code == 200:
-                    data = response.json()
-                    content = data["choices"][0]["message"]["content"]
-                    logger.info(f"✅ Perplexity Verification SUCCESS. Status Code: 200. Response Length: {len(content)} characters.")
-                    return content
-                else:
-                    logger.error(f"❌ Perplexity Verification FAILURE. Status Code: {response.status_code}. Error: {response.text}")
-                    return None
-        except Exception as e:
-            logger.error(f"❌ Perplexity Verification EXCEPTION. Error: {str(e)}")
-            return None
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(self.api_url, json=payload, headers=headers)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        content = data["choices"][0]["message"]["content"]
+                        logger.info(f"✅ Perplexity Verification SUCCESS. Status Code: 200. Response Length: {len(content)} characters.")
+                        return content
+                    else:
+                        logger.warning(f"Attempt {attempt + 1}/{max_retries} failed. Status Code: {response.status_code}. Error: {response.text}")
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} Exception: {str(e)}")
+            
+            if attempt < max_retries - 1:
+                import asyncio
+                await asyncio.sleep(retry_delay * (2 ** attempt)) # Exponential backoff
+        
+        logger.error("❌ Perplexity Verification FAILURE after max retries.")
+        return None
