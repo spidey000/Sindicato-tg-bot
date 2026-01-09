@@ -12,6 +12,11 @@ El bot permite a los delegados sindicales autorizados:
 2.  **Gestión Centralizada**: Cada caso se registra automáticamente en una base de datos de **Notion** y crea su propia carpeta en **Google Drive**.
 3.  **Flujo Dual (Público/Privado)**: Inicia la acción en el grupo sindical para visibilidad, y refina los detalles (pruebas, redacción) en privado.
 
+### ✨ Características Clave (Actualizado)
+*   **IDs Secuenciales Inteligentes**: El sistema detecta automáticamente el último ID utilizado (ej. `D-2026-005`) y asigna el siguiente, evitando duplicados.
+*   **Nombres Descriptivos**: Los expedientes en Notion y las carpetas de Drive se crean con el formato `ID - Resumen` (ej. `D-2026-006 - Falta de EPIs`), facilitando la búsqueda.
+*   **Integración Robusta**: Sincronización bidireccional fiable con Notion (incluso con bases de datos complejas) y Google Drive.
+
 ---
 
 ## 🛠️ Requisitos Previos

@@ -64,7 +64,13 @@ El bot actúa como un asistente jurídico-administrativo exclusivo para delegado
 Estructura: `2026 / [Tipo] / [ID] - [Contexto] / {Pruebas, Respuestas}`.
 
 ## 8. Diseño Notion
-Base de datos "Expedientes" con propiedades: ID, Tipo, Estado, Responsable, Empresa, Centro, Fecha Apertura, Plazos, Enlaces Drive/Doc.
+Base de datos "Expedientes" con propiedades:
+*   **ID**: Identificador secuencial automático (ej. `D-2026-001`).
+*   **Nombre (Title)**: Formato descriptivo `ID - Resumen` (ej. `D-2026-001 - Falta de EPIs`).
+*   **Tipo**: Select (Denuncia ITSS, Demanda, Email).
+*   **Estado**: Status (Borrador, En revisión, Enviado...).
+*   **Responsable**: Persona asignada.
+*   **Enlaces**: URLs a carpeta de Drive y Documento de Google (almacenado en propiedad `Perplexity` o `Enlace Doc`).
 
 ## 9. Plan de Implementación Orientado a Features (AI-Driven)
 
