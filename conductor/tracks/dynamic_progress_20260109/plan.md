@@ -10,7 +10,7 @@
     - *Alternatively, keep `generate_structured_draft_verified` but add a `callback` parameter.* (Decided: Split for better control in handlers). 5ea606a
 - [x] Task: Conductor - User Manual Verification 'Core Logic' (Protocol in workflow.md) 9e60eee
 
-## Phase 2: Handler Integration (`/denuncia`, `/demanda`, `/email`)
+## Phase 2: Handler Integration (`/denuncia`, `/demanda`, `/email`) [checkpoint: b739808]
 - [x] Task: Refactor `denuncia_handler` in `src/handlers.py`:
     - Initialize progress message.
     - Step 1: Call `agent.generate_structured_draft`. Update Progress.
