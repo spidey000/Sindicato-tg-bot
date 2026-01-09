@@ -1,4 +1,4 @@
-# PRD: Sistema "Delegado 360" (Versión Final)
+# PRD: Sistema "Marxnager" (Versión Final)
 
 ## 1. Visión y Control de Acceso
 El bot actúa como un asistente jurídico-administrativo exclusivo para delegados autorizados.

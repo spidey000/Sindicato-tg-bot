@@ -1,4 +1,4 @@
-# Tech Stack: Delegado 360
+# Tech Stack: Marxnager
 
 ## Core Technologies
 - **Language:** Python 3.11+
@@ -9,6 +9,7 @@
 - **Orchestrator Models (via OpenRouter):**
     - **Primary:** `deepseek/deepseek-r1-0528:free` for high-reasoning draft generation and refinement.
     - **Fallback:** `mistralai/devstral-2512:free`.
+    - **Validation:** Enforced JSON output (`json_object`) and mandatory 3-attempt retry logic for all LLM calls.
 - **Validation & Search (Perplexity Sonar):**
     - `sonar-pro` model used for real-time legal research and fact-checking of drafts.
     - Dual-key fallback system for API reliability.

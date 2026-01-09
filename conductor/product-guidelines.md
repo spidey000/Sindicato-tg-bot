@@ -1,4 +1,4 @@
-# Product Guidelines: Delegado 360
+# Product Guidelines: Marxnager
 
 ## Brand Voice & Tone
 - **Formal and Technical:** The bot interacts as a specialized legal assistant. It uses precise administrative and legal terminology (e.g., "expediente," "fundamentación jurídica," "vulneración de derechos") to maintain credibility and professionalism.

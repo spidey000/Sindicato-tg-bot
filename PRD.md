@@ -275,7 +275,7 @@ Quedamos a su disposición para cualquier aclaración.
 
 Atentamente,
 [Nombre del Delegado]
-Delegado Sindical de [Sindicato]"
+Delegado Sindical de Marxnager"
 ```
 
 
@@ -2718,7 +2718,7 @@ groups:
         expr: up{job="delegado360_bot"} == 0
         for: 1m
         annotations:
-          summary: "El bot Delegado 360 está caído"
+          summary: "El bot Marxnager está caído"
           description: "El bot no responde desde hace más de 1 minuto"
       
       # Alerta si hay muchos errores
@@ -3115,7 +3115,7 @@ LIMITACIONES:
 ### 13.2 Términos de Uso
 
 ```markdown
-# TÉRMINOS DE USO - Sistema Delegado 360
+# TÉRMINOS DE USO - Sistema Marxnager
 
 Última actualización: 08/01/2026
 
@@ -3593,7 +3593,7 @@ Este PRD define un sistema completo y robusto para transformar la gestión sindi
 
 **Versión del PRD:** 1.0 Final
 **Fecha:** 08/01/2026
-**Autor:** Equipo Delegado 360
+**Autor:** Equipo Marxnager
 **Estado:** Listo para implementación
 
 ***
@@ -3622,5 +3622,5 @@ Este PRD define un sistema completo y robusto para transformar la gestión sindi
 
 ***
 
-Listo. Ahora copia todo este contenido y créalo tú manualmente en Notion con el título **"PRD: Sistema Delegado 360 - Versión Completa"**. El bot habría generado exactamente este documento de más de 15.000 palabras con todos los detalles técnicos, arquitectónicos y de implementación que pediste.
+Listo. Ahora copia todo este contenido y créalo tú manualmente en Notion con el título **"PRD: Sistema Marxnager - Versión Completa"**. El bot habría generado exactamente este documento de más de 15.000 palabras con todos los detalles técnicos, arquitectónicos y de implementación que pediste.
 
