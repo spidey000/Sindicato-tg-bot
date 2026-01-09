@@ -16,6 +16,35 @@ class DelegadoNotionClient:
         else:
             logger.warning("NOTION_TOKEN not found. Notion integration disabled.")
 
+    def _get_data_source_id(self) -> Optional[str]:
+        """Retrieves the Data Source ID associated with the current Database ID."""
+        if not self.client or not self.database_id: return None
+        try:
+            db_info = self.client.databases.retrieve(database_id=self.database_id)
+            ds_list = db_info.get("data_sources", [])
+            if ds_list:
+                return ds_list[0]["id"]
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving data source ID: {e}")
+            return None
+
+    def _query_notion(self, **kwargs) -> Dict[str, Any]:
+        """Wrapper to query Notion, falling back to data_sources if databases.query is missing."""
+        if hasattr(self.client.databases, "query"):
+            return self.client.databases.query(**kwargs)
+        
+        # Fallback to data_sources.query if this is a managed database
+        ds_id = self._get_data_source_id()
+        if ds_id and hasattr(self.client, "data_sources"):
+            # Map database_id to data_source_id for the fallback call
+            if "database_id" in kwargs:
+                kwargs["data_source_id"] = ds_id
+                del kwargs["database_id"]
+            return self.client.data_sources.query(**kwargs)
+        
+        raise AttributeError("'DatabasesEndpoint' object has no attribute 'query' and no Data Source fallback found.")
+
     def create_case_page(self, case_data: Dict[str, Any]) -> Optional[str]:
         """
         Creates a new page in the Notion database for a case.
@@ -42,8 +71,11 @@ class DelegadoNotionClient:
             }
             notion_type = type_map.get(case_data.get("type"))
 
-            # Construct Title: "ID - Context (Truncated)"
-            title_text = f"{case_data.get('id')} - {case_data.get('initial_context', '')[:50]}"
+            # Construct Title: Use passed title or "ID - Context (Truncated)"
+            if case_data.get("title"):
+                title_text = case_data["title"]
+            else:
+                title_text = f"{case_data.get('id')} - {case_data.get('initial_context', '')[:50]}"
 
             properties = {
                 "Name": {"title": [{"text": {"content": title_text}}]},
@@ -71,12 +103,12 @@ class DelegadoNotionClient:
         """Helper to find a Notion page ID by its Case ID (Title property)."""
         if not self.client or not self.database_id: return None
         try:
-            response = self.client.databases.query(
+            response = self._query_notion(
                 database_id=self.database_id,
                 filter={
-                    "property": "ID",
+                    "property": "Name",
                     "title": {
-                        "equals": case_id
+                        "starts_with": case_id
                     }
                 }
             )
@@ -92,7 +124,7 @@ class DelegadoNotionClient:
         if not self.client or not self.database_id: return []
         
         try:
-            response = self.client.databases.query(
+            response = self._query_notion(
                 database_id=self.database_id,
                 filter={
                     "or": [
@@ -150,7 +182,8 @@ class DelegadoNotionClient:
         if drive_link:
             properties["Gdrive folder"] = {"url": drive_link}
         if doc_link:
-            properties["Enlace Doc"] = {"url": doc_link}
+            # Note: Using 'Perplexity' property as fallback for doc link based on schema discovery
+            properties["Perplexity"] = {"url": doc_link}
             
         if not properties: return
 
@@ -170,7 +203,7 @@ class DelegadoNotionClient:
             props = page.get("properties", {})
             
             drive_url = props.get("Gdrive folder", {}).get("url")
-            doc_url = props.get("Enlace Doc", {}).get("url")
+            doc_url = props.get("Perplexity", {}).get("url")
             
             return {"drive_url": drive_url, "doc_url": doc_url}
         except Exception as e:
@@ -183,10 +216,20 @@ class DelegadoNotionClient:
         """
         if not self.client or not self.database_id: return None
         
+        import datetime
+        current_year = datetime.datetime.now().year
+        search_prefix = f"{type_prefix}-{current_year}"
+
         try:
-            # Sort by Name (Title) descending to get the latest ID
-            response = self.client.databases.query(
+            # Filter by Title starts with "PREFIX-YEAR" and sort descending
+            response = self._query_notion(
                 database_id=self.database_id,
+                filter={
+                    "property": "Name",
+                    "title": {
+                        "starts_with": search_prefix
+                    }
+                },
                 sorts=[
                     {
                         "property": "Name",
@@ -208,3 +251,4 @@ class DelegadoNotionClient:
         except Exception as e:
             logger.error(f"Error fetching last case ID: {e}")
             return None
+

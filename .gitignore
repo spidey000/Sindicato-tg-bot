@@ -11,3 +11,16 @@ client_secret.json
 token.json
 *.log
 gcloud/
+
+# Debug and Test Scripts
+check_all_props.py
+debug_notion.py
+debug_notion_search.py
+src/integrations/clients_dump.txt
+temp_context_summary.txt
+test_ds_query.py
+test_integration_fix.py
+test_query.py
+test_request_query.py
+test_request_query_slash.py
+test_request_query_v1.py

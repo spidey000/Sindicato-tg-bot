@@ -65,6 +65,7 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 2. Notion Entry
     notion_page_id = notion.create_case_page({
         "id": case_id,
+        "title": full_title,
         "type": "Denuncia ITSS",
         "status": "Borrador",
         "company": "Detectar o Pendiente",
@@ -267,6 +268,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Notion
     notion_page_id = notion.create_case_page({
         "id": case_id,
+        "title": full_title,
         "type": "Demanda Judicial",
         "status": "Borrador",
         "created_at": datetime.now(),
@@ -323,6 +325,7 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Notion
     notion_page_id = notion.create_case_page({
         "id": case_id,
+        "title": full_title,
         "type": "Email RRHH",
         "status": "Borrador",
         "created_at": datetime.now(),

@@ -14,4 +14,10 @@
 - Updated `src/utils.py` to support ID incrementation.
 
 ### Fixed
+- **Notion Integration**: Fixed a critical error where the Notion client would fail due to a missing `databases.query` method. Implemented a robust fallback using `data_sources.query` for managed databases.
+- **Notion Database Schema**: Updated property mapping to match the actual database schema (`Perplexity` property used as a fallback for document links when `Enlace Doc` is missing).
 - Fixed missing Google Doc link persistence in Notion.
+
+### Improved
+
+- **Descriptive Naming**: Ensured all Notion pages, Drive folders, and Google Docs use a descriptive title format (`ID - Summary`) instead of just the Case ID, fulfilling user request for better organization.
