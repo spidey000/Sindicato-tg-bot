@@ -13,7 +13,7 @@
     - Delete Drive folders (`drive_client.service.files().delete()`).
     - Delete Google Docs (handled by folder deletion, but ensure cleanup). 7510e5a
 - [x] Task: Implement a `RollbackManager` class in `src/utils.py` to track created IDs and execute cleanup on failure. 77f72a6
-- [ ] Task: Add unit tests for `RollbackManager` and cleanup utilities using mocks.
+- [x] Task: Add unit tests for `RollbackManager` and cleanup utilities using mocks. 7510e5a, 77f72a6
 - [ ] Task: Conductor - User Manual Verification 'Rollback Utilities' (Protocol in workflow.md)
 
 ## Phase 3: Handler Integration & Error Reporting [checkpoint: ]
