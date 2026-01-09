@@ -1,7 +1,7 @@
 # Plan: Observability & Perplexity Verification
 
 ## Phase 1: Configuration & Environment
-- [~] Task: Update `.env.example` and `.env` (user instruction) to include `PERPLEXITY_API_KEY_PRIMARY` and `PERPLEXITY_API_KEY_FALLBACK`.
+- [x] Task: Update `.env.example` and `.env` (user instruction) to include `PERPLEXITY_API_KEY_PRIMARY` and `PERPLEXITY_API_KEY_FALLBACK`. e49122e
 - [ ] Task: Conductor - User Manual Verification 'Configuration' (Protocol in workflow.md)
 
 ## Phase 2: `/log` Command Implementation
