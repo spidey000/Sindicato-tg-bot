@@ -30,11 +30,11 @@ Extend the Notion client to support logging the raw verification report as a vis
 ## Phase 4: Full Workflow Integration
 Tie all components together in the main agent generation loop.
 
-- [ ] Task: Update `AgentBase.generate_structured_draft_verified` in `src/agents/base.py` to orchestrate:
+- [x] Task: Update `AgentBase.generate_structured_draft_verified` in `src/agents/base.py` to orchestrate:
     1. Extract metadata from the initial draft.
     2. Call the enhanced Perplexity verification.
     3. Trigger the Notion audit log.
-    4. Refine the draft.
-- [ ] Task: Update `tests/test_agent_verification.py` to reflect the full integrated flow.
-- [ ] Task: Verify the full integration tests pass.
+    4. Refine the draft. 0000000
+- [x] Task: Update `tests/test_agent_verification.py` to reflect the full integrated flow. 0000000
+- [x] Task: Verify the full integration tests pass. 0000000
 - [ ] Task: Conductor - User Manual Verification 'Full Workflow Integration' (Protocol in workflow.md)

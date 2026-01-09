@@ -10,12 +10,13 @@ class TestAgent(AgentBase):
 class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
     @patch("src.agents.base.PerplexityClient")
     @patch("src.agents.base.OpenRouterClient")
-    async def test_generate_structured_draft_with_verification(self, mock_router_cls, mock_pplx_cls):
+    @patch("src.agents.base.DelegadoNotionClient")
+    async def test_generate_structured_draft_with_verification(self, mock_notion_cls, mock_router_cls, mock_pplx_cls):
         # Setup Router Mock (Initial Draft)
         mock_router = MagicMock()
         mock_router_cls.return_value = mock_router
         mock_router.completion.side_effect = [
-            '{"summary": "Test Summary", "content": "This is a very long initial draft that serves to pass the validation check requiring fifty characters."}', # First call: Initial
+            '{"summary": "Test Summary", "content": "This is a very long initial draft that serves to pass the validation check requiring fifty characters.", "thesis": "My Thesis", "specific_point": "My Point", "area": "My Area"}', # First call: Initial
             "Refined Draft" # Second call: Refinement
         ]
         
@@ -24,19 +25,35 @@ class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
         mock_pplx_cls.return_value = mock_pplx
         mock_pplx.verify_draft = AsyncMock(return_value="Grounding Feedback")
         
+        # Setup Notion Mock
+        mock_notion = MagicMock()
+        mock_notion_cls.return_value = mock_notion
+        
         # Init Agent
         agent = TestAgent()
         
         # Action
-        result = await agent.generate_structured_draft_verified("Context")
+        result = await agent.generate_structured_draft_verified("Context", notion_page_id="page-123")
         
         # Verify
         self.assertEqual(result["summary"], "Test Summary")
         self.assertEqual(result["content"], "Refined Draft")
         self.assertEqual(result["verification_status"], "Verified")
         
-        # Verify calls
-        mock_pplx.verify_draft.assert_called_once_with("This is a very long initial draft that serves to pass the validation check requiring fifty characters.")
+        # Verify Perplexity called with Metadata
+        mock_pplx.verify_draft.assert_called_once_with(
+            context="This is a very long initial draft that serves to pass the validation check requiring fifty characters.",
+            thesis="My Thesis",
+            specific_point="My Point",
+            area="My Area"
+        )
+        
+        # Verify Notion Audit Log was triggered
+        mock_notion.append_verification_report.assert_called_once_with(
+            "page-123",
+            "Grounding Feedback"
+        )
+        
         self.assertEqual(mock_router.completion.call_count, 2) # Initial + Refine
 
     @patch("src.agents.base.PerplexityClient")
@@ -45,7 +62,7 @@ class TestAgentVerification(unittest.IsolatedAsyncioTestCase):
         # Setup Router Mock
         mock_router = MagicMock()
         mock_router_cls.return_value = mock_router
-        mock_router.completion.return_value = '{"summary": "Test Summary", "content": "This is a very long initial draft that serves to pass the validation check requiring fifty characters."}'
+        mock_router.completion.return_value = '{"summary": "Test Summary", "content": "This is a very long initial draft that serves to pass the validation check requiring fifty characters.", "thesis": "", "specific_point": "", "area": ""}'
         
         # Setup Perplexity Mock (Failure)
         mock_pplx = MagicMock()

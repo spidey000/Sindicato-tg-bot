@@ -4,6 +4,7 @@ import json
 from abc import ABC, abstractmethod
 from src.integrations.openrouter_client import OpenRouterClient
 from src.integrations.perplexity_client import PerplexityClient
+from src.integrations.notion_client import DelegadoNotionClient
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ class AgentBase(ABC):
     def __init__(self):
         self.llm_client = OpenRouterClient()
         self.pplx_client = PerplexityClient()
+        self.notion_client = DelegadoNotionClient()
         
     @abstractmethod
     def get_system_prompt(self) -> str:
@@ -29,11 +31,16 @@ class AgentBase(ABC):
         logger.info(f"Generating draft with {self.__class__.__name__} using OpenRouter...")
         return self.llm_client.completion(messages)
 
-    async def verify_draft_content(self, content: str) -> str:
+    async def verify_draft_content(self, content: str, thesis: str = "", specific_point: str = "", area: str = "") -> str:
         """
         Public method to verify draft content using Perplexity.
         """
-        return await self.pplx_client.verify_draft(content)
+        return await self.pplx_client.verify_draft(
+            context=content,
+            thesis=thesis,
+            specific_point=specific_point,
+            area=area
+        )
 
     def refine_draft_with_feedback(self, content: str, feedback: str) -> str:
         """
@@ -42,12 +49,12 @@ class AgentBase(ABC):
         refinement_instruction = f"VERIFICACIÓN LEGAL OBLIGATORIA:\n{feedback}"
         return self.refine_draft(content, refinement_instruction)
 
-    async def generate_structured_draft_verified(self, context: str) -> dict:
+    async def generate_structured_draft_verified(self, context: str, notion_page_id: str = None) -> dict:
         """
         Generates a draft, verifies it with Perplexity (Sonar LLM), and refines it.
         Returns a dict with 'summary', 'content', and 'verification_status'.
         """
-        # 1. Generate Initial Draft
+        # 1. Generate Initial Draft (includes metadata: thesis, specific_point, area)
         initial_data = self.generate_structured_draft_with_retry(context)
         initial_content = initial_data.get("content", "")
         
@@ -57,13 +64,23 @@ class AgentBase(ABC):
 
         logger.info(f"Verifying draft with Perplexity...")
         
-        # 2. Verify (Grounding)
-        verification_feedback = await self.pplx_client.verify_draft(initial_content)
+        # 2. Verify (Grounding) using extracted metadata
+        verification_feedback = await self.pplx_client.verify_draft(
+            context=initial_content,
+            thesis=initial_data.get("thesis", ""),
+            specific_point=initial_data.get("specific_point", ""),
+            area=initial_data.get("area", "")
+        )
         
         if verification_feedback:
             logger.info("Draft verified. Refining...")
             
-            # 3. Refine
+            # 3. Audit Log (Notion)
+            if notion_page_id:
+                logger.info(f"Logging verification report to Notion page {notion_page_id}...")
+                self.notion_client.append_verification_report(notion_page_id, verification_feedback)
+
+            # 4. Refine
             refinement_instruction = f"VERIFICACIÓN LEGAL OBLIGATORIA:\n{verification_feedback}"
             refined_content = self.refine_draft(initial_content, refinement_instruction)
             
