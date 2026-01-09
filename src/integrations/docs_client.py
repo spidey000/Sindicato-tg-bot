@@ -1,25 +1,30 @@
 from googleapiclient.discovery import build
-from google.oauth2.service_account import Credentials
 import os
 import logging
+from typing import Optional
+from src.integrations.auth_helper import get_google_creds
 
 logger = logging.getLogger(__name__)
 
 class DelegadoDocsClient:
     def __init__(self):
-        self.creds_path = os.getenv("GOOGLE_DRIVE_CREDENTIALS_PATH")
         self.service = None
         self.drive_service = None
         
-        if self.creds_path and os.path.exists(self.creds_path):
+        SCOPES = [
+            'https://www.googleapis.com/auth/documents',
+            'https://www.googleapis.com/auth/drive'
+        ]
+        creds = get_google_creds(SCOPES)
+        
+        if creds:
             try:
-                creds = Credentials.from_service_account_file(self.creds_path)
                 self.service = build('docs', 'v1', credentials=creds)
                 self.drive_service = build('drive', 'v3', credentials=creds)
             except Exception as e:
                 logger.error(f"Error initializing Docs client: {e}")
         else:
-            logger.warning("GOOGLE_DRIVE_CREDENTIALS_PATH not found or invalid. Docs integration disabled.")
+            logger.warning("Docs integration disabled: No valid credentials.")
 
     def create_draft_document(self, title: str, content: str, parent_folder_id: str) -> Optional[str]:
         """Creates a Google Doc with content and moves it to the specified folder."""
@@ -59,3 +64,116 @@ class DelegadoDocsClient:
         except Exception as e:
             logger.error(f"Error creating draft document: {e}")
             return None
+
+    def read_document_content(self, document_id: str) -> Optional[str]:
+        """Reads the full text content of a Google Doc."""
+        if not self.service: return None
+        
+        try:
+            # Check if document_id is a URL
+            if "docs.google.com" in document_id:
+                import re
+                match = re.search(r"/d/([a-zA-Z0-9-_]+)", document_id)
+                if match:
+                    document_id = match.group(1)
+
+            doc = self.service.documents().get(documentId=document_id).execute()
+            content = doc.get('body').get('content')
+            
+            full_text = ""
+            for element in content:
+                if 'paragraph' in element:
+                    for run in element['paragraph']['elements']:
+                        if 'textRun' in run:
+                            full_text += run['textRun']['content']
+            
+            return full_text
+        except Exception as e:
+            logger.error(f"Error reading document content: {e}")
+            return None
+
+    def update_document_content(self, document_id: str, new_content: str) -> bool:
+        """Replaces the entire content of the document with new_content."""
+        if not self.service: return False
+        
+        try:
+             # Check if document_id is a URL
+            if "docs.google.com" in document_id:
+                import re
+                match = re.search(r"/d/([a-zA-Z0-9-_]+)", document_id)
+                if match:
+                    document_id = match.group(1)
+
+            # 1. Get document to find end index
+            doc = self.service.documents().get(documentId=document_id).execute()
+            content = doc.get('body').get('content')
+            end_index = content[-1].get('endIndex') - 1
+            
+            if end_index <= 1:
+                # Document is empty (except for trailing newline)
+                requests = [
+                    {
+                        'insertText': {
+                            'location': {'index': 1},
+                            'text': new_content
+                        }
+                    }
+                ]
+            else:
+                requests = [
+                    {
+                        'deleteContentRange': {
+                            'range': {
+                                'startIndex': 1,
+                                'endIndex': end_index
+                            }
+                        }
+                    },
+                    {
+                        'insertText': {
+                            'location': {'index': 1},
+                            'text': new_content
+                        }
+                    }
+                ]
+
+            self.service.documents().batchUpdate(documentId=document_id, body={'requests': requests}).execute()
+            logger.info(f"Updated content of document {document_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error updating document content: {e}")
+            return False
+
+    def append_text(self, document_id: str, text: str) -> bool:
+        """Appends text to the end of a document."""
+        if not self.service: return False
+        
+        try:
+            # Check if document_id is a URL, if so extract ID
+            if "docs.google.com" in document_id:
+                # Basic extraction: .../d/DOC_ID/edit...
+                import re
+                match = re.search(r"/d/([a-zA-Z0-9-_]+)", document_id)
+                if match:
+                    document_id = match.group(1)
+            
+            # Get document to find end index
+            doc = self.service.documents().get(documentId=document_id).execute()
+            content = doc.get('body').get('content')
+            end_index = content[-1].get('endIndex') - 1
+            
+            requests = [
+                {
+                    'insertText': {
+                        'location': {'index': end_index},
+                        'text': f"\n\n[NOTA ADICIONAL - {os.getenv('BOT_NAME', 'Delegado 360')}]\n{text}\n"
+                    }
+                }
+            ]
+            
+            self.service.documents().batchUpdate(documentId=document_id, body={'requests': requests}).execute()
+            logger.info(f"Appended text to document {document_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error appending text to document: {e}")
+            return False

@@ -1,3 +1,4 @@
+import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters
 from src.middleware import restricted
@@ -52,9 +53,12 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Por favor, describe los hechos para iniciar la denuncia.\nEjemplo: /denuncia Falta de EPIs en el almacén")
         return
 
-    # 1. Generate ID
-    case_id = generate_case_id("D")
+    # 1. Generate ID and Title
+    last_id = notion.get_last_case_id("D")
+    case_id = generate_case_id("D", last_id)
     user = update.effective_user.first_name
+    title_slug = " ".join(context_args.split()[:6])[:40].strip().replace("/", "-")
+    full_title = f"{case_id} - {title_slug}"
     
     await update.message.reply_text(f"🔄 Procesando expediente {case_id}...")
 
@@ -71,7 +75,7 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 3. Drive Folder
     drive_link, folder_id = None, None
     if drive.service:
-        drive_link, folder_id = drive.create_case_folder(case_id, context_args[:30])
+        drive_link, folder_id = drive.create_case_folder(case_id, title_slug, case_type="denuncia")
         if folder_id:
             drive.create_subfolder(folder_id, "Pruebas")
             drive.create_subfolder(folder_id, "Respuestas")
@@ -81,20 +85,19 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if folder_id and docs.service:
         agent = agent_orchestrator.get_agent_for_command("/denuncia")
         draft_content = agent.generate_draft(context_args)
-        doc_link = docs.create_draft_document(f"{case_id} - Borrador", draft_content, folder_id)
+        doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
 
     # 5. Update Notion links
     if notion_page_id and (drive_link or doc_link):
         notion.update_page_links(notion_page_id, drive_link, doc_link)
 
-    # 6. Final Response with Button
-    response = f"✅ *EXPEDIENTE CREADO*\n\n📋 *ID:* `{case_id}`\n📂 *Tipo:* Denuncia ITSS\n👤 *Responsable:* {user}\n\n"
+    # 6. Final Response
+    response = f"✅ *EXPEDIENTE CREADO*\n\n📋 *ID:* `{case_id}`\n📂 *Tipo:* Denuncia ITSS\n📝 *Asunto:* {title_slug}\n👤 *Responsable:* {user}\n\n"
     
     if notion_page_id: response += f"🔗 [Ver en Notion](https://notion.so/{notion_page_id.replace('-', '')})\n"
     if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
     if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
 
-    # Deep Link Button
     bot_username = context.bot.username
     deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
     keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
@@ -122,7 +125,7 @@ async def update_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     bot_username = context.bot.username
     
-    for case in cases[:10]: # Limit to 10 to avoid hitting limits
+    for case in cases[:10]:
         message_text += f"🔹 `{case['id']}` - {case['status']}\n"
         deep_link = f"https://t.me/{bot_username}?start=case_{case['id']}"
         keyboard.append([InlineKeyboardButton(f"✏️ Editar {case['id']}", url=deep_link)])
@@ -150,7 +153,7 @@ async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await update.message.reply_text(f"❌ Error actualizando Notion (¿El caso existe?).")
     else:
-        await update.message.reply_text(f"⚠️ [Simulado] Estado actualizado a '{new_status}' (Notion no conectado).")
+        await update.message.reply_text(f"⚠️ No se pudo conectar con Notion.")
 
 @restricted
 async def private_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -159,24 +162,84 @@ async def private_message_handler(update: Update, context: ContextTypes.DEFAULT_
     session = session_manager.get_session(user_id)
     
     if session["state"] != SessionState.EDITING_CASE:
-        return # Ignore normal messages or handle as generic
+        return
 
     case_id = session["active_case_id"]
     
-    # Handle Files
-    if update.message.document or update.message.photo or update.message.voice:
-        # Here we would implement file download and upload to Drive
-        # For now, simulated response
-        file_type = "Archivo"
-        if update.message.photo: file_type = "Foto"
-        elif update.message.voice: file_type = "Audio"
-        
-        await update.message.reply_text(f"📎 {file_type} recibido. Subiendo a carpeta del caso `{case_id}`... (Simulado)")
+    # 1. Get Folder ID from Notion
+    links = notion.get_case_links(case_id)
+    drive_url = links.get("drive_url")
+    folder_id = None
+    if drive_url:
+        match = re.search(r"folders/([a-zA-Z0-9-_]+)", drive_url)
+        if match: folder_id = match.group(1)
+    
+    if not folder_id:
+        await update.message.reply_text("❌ No encontré la carpeta Drive vinculada a este caso en Notion.")
         return
 
-    # Handle Text (Refinement)
+    # 2. Handle Files (Photo, Document, Voice, Audio)
+    attachment = None
+    if update.message.document: attachment = update.message.document
+    elif update.message.photo: attachment = update.message.photo[-1] # Highest res
+    elif update.message.voice: attachment = update.message.voice
+    elif update.message.audio: attachment = update.message.audio
+
+    if attachment:
+        try:
+            await update.message.reply_text("⏳ Procesando archivo...")
+            file_obj = await attachment.get_file()
+            
+            # Determine filename
+            original_name = getattr(attachment, 'file_name', None)
+            if not original_name:
+                ext = ".jpg" if update.message.photo else ".ogg" if update.message.voice else ""
+                original_name = f"upload_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}"
+            
+            byte_array = await file_obj.download_as_bytearray()
+            
+            # Upload to Drive
+            link = drive.upload_file(byte_array, original_name, folder_id)
+            
+            if link:
+                 await update.message.reply_text(f"✅ Archivo guardado: {link}")
+            else:
+                 await update.message.reply_text("❌ Error al subir archivo a Drive.")
+        except Exception as e:
+            await update.message.reply_text(f"❌ Error procesando archivo: {e}")
+        return
+
+    # 3. Handle Text (Refinement)
     text = update.message.text
-    await update.message.reply_text(f"📝 Texto recibido para caso `{case_id}`. Analizando para actualizar borrador... (Simulado)")
+    if text:
+        await update.message.reply_text("⏳ Analizando nueva información y refinando borrador...")
+        doc_id = drive.find_doc_in_folder(folder_id)
+        
+        if doc_id:
+             # Identify Agent based on Case ID prefix
+             prefix = case_id.split("-")[0]
+             command_map = {"D": "/denuncia", "J": "/demanda", "E": "/email"}
+             command = command_map.get(prefix, "/denuncia")
+             
+             agent = agent_orchestrator.get_agent_for_command(command)
+             
+             # Read current content
+             current_content = docs.read_document_content(doc_id)
+             if not current_content:
+                 current_content = "" # Should not happen if doc exists
+                 
+             # Refine
+             new_content = agent.refine_draft(current_content, text)
+             
+             # Update Doc
+             success = docs.update_document_content(doc_id, new_content)
+             
+             if success:
+                 await update.message.reply_text("✅ Borrador actualizado con éxito.")
+             else:
+                 await update.message.reply_text("❌ Error escribiendo en el documento.")
+        else:
+             await update.message.reply_text("❌ No encontré el documento borrador en la carpeta del caso.")
 
 @restricted
 async def stop_editing_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -193,7 +256,53 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Por favor, especifica el tipo y hechos.\nEjemplo: /demanda despido Despido improcedente de Juan")
         return
 
-    await update.message.reply_text(f"⚖️ [Simulación] Iniciando expediente de DEMANDA con contexto: '{context_args}'")
+    last_id = notion.get_last_case_id("J")
+    case_id = generate_case_id("J", last_id)
+    user = update.effective_user.first_name
+    title_slug = " ".join(context_args.split()[:6])[:40].strip().replace("/", "-")
+    full_title = f"{case_id} - {title_slug}"
+
+    await update.message.reply_text(f"🔄 Procesando expediente judicial {case_id}...")
+
+    # Notion
+    notion_page_id = notion.create_case_page({
+        "id": case_id,
+        "type": "Demanda Judicial",
+        "status": "Borrador",
+        "created_at": datetime.now(),
+        "initial_context": context_args
+    })
+
+    # Drive
+    drive_link, folder_id = None, None
+    if drive.service:
+        drive_link, folder_id = drive.create_case_folder(case_id, title_slug, case_type="demanda")
+        if folder_id:
+            drive.create_subfolder(folder_id, "Pruebas")
+            drive.create_subfolder(folder_id, "Procedimiento")
+
+    # Doc (AI Generated)
+    doc_link = None
+    if folder_id and docs.service:
+        agent = agent_orchestrator.get_agent_for_command("/demanda")
+        draft_content = agent.generate_draft(context_args)
+        doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+
+    # Notion Update
+    if notion_page_id and (drive_link or doc_link):
+        notion.update_page_links(notion_page_id, drive_link, doc_link)
+
+    response = f"✅ *EXPEDIENTE JUDICIAL CREADO*\n\n📋 *ID:* `{case_id}`\n⚖️ *Tipo:* Demanda\n📝 *Asunto:* {title_slug}\n"
+    
+    if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
+    if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+
+    bot_username = context.bot.username
+    deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
+    keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
+    await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
 
 @restricted
 async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -203,4 +312,41 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Por favor, indica el asunto y el mensaje.\nEjemplo: /email Solicitud Vacaciones Pedir el calendario anual")
         return
 
-    await update.message.reply_text(f"📧 [Simulación] Redactando EMAIL con contexto: '{context_args}'")
+    last_id = notion.get_last_case_id("E")
+    case_id = generate_case_id("E", last_id)
+    user = update.effective_user.first_name
+    title_slug = " ".join(context_args.split()[:6])[:40].strip().replace("/", "-")
+    full_title = f"{case_id} - {title_slug}"
+
+    await update.message.reply_text(f"🔄 Redactando comunicación {case_id}...")
+
+    # Notion
+    notion_page_id = notion.create_case_page({
+        "id": case_id,
+        "type": "Email RRHH",
+        "status": "Borrador",
+        "created_at": datetime.now(),
+        "initial_context": context_args
+    })
+
+    # Drive
+    drive_link, folder_id = None, None
+    if drive.service:
+        drive_link, folder_id = drive.create_case_folder(case_id, title_slug, case_type="email")
+
+    # Doc (AI Generated)
+    doc_link = None
+    if folder_id and docs.service:
+        agent = agent_orchestrator.get_agent_for_command("/email")
+        draft_content = agent.generate_draft(context_args)
+        doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+
+    # Notion Update
+    if notion_page_id and (drive_link or doc_link):
+        notion.update_page_links(notion_page_id, drive_link, doc_link)
+
+    response = f"✅ *COMUNICACIÓN CREADA*\n\n📋 *ID:* `{case_id}`\n📧 *Tipo:* Email RRHH\n📝 *Asunto:* {title_slug}\n"
+    
+    if doc_link: response += f"📄 [Borrador]({doc_link})\n"
+
+    await update.message.reply_text(response, parse_mode='Markdown')

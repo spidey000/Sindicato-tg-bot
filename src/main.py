@@ -1,6 +1,7 @@
 import logging
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
-from src.config import BOT_TOKEN, LOG_LEVEL
+from src.config import BOT_TOKEN
+from src.logging_config import setup_logging
 from src.handlers import (
     start, 
     denuncia_handler, 
@@ -12,17 +13,17 @@ from src.handlers import (
     update_handler
 )
 
-# Configure Logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=getattr(logging, LOG_LEVEL)
-)
 logger = logging.getLogger(__name__)
 
 def main():
+    # Initialize Logging System
+    setup_logging()
+    
     if not BOT_TOKEN:
-        logger.error("Error: BOT_TOKEN not found in environment variables.")
+        logger.critical("❌ Error: BOT_TOKEN not found in environment variables.")
         return
+
+    logger.info("🤖 Initializing Delegado 360 Bot...")
 
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -42,7 +43,7 @@ def main():
         private_message_handler
     ))
 
-    logger.info("Bot started. Listening for commands...")
+    logger.info("🚀 Bot started successfully. Listening for commands...")
     application.run_polling()
 
 if __name__ == '__main__':

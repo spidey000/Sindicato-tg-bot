@@ -143,13 +143,14 @@ class DelegadoNotionClient:
             return False
 
     def update_page_links(self, page_id: str, drive_link: str = None, doc_link: str = None):
-        """Updates the Drive link for a specific page."""
+        """Updates the Drive and Doc links for a specific page."""
         if not self.client: return
 
         properties = {}
         if drive_link:
             properties["Gdrive folder"] = {"url": drive_link}
-        # Note: The schema doesn't have a specific 'Doc Link' field, so we only update Drive or append to body (not implemented here)
+        if doc_link:
+            properties["Enlace Doc"] = {"url": doc_link}
             
         if not properties: return
 
@@ -158,3 +159,52 @@ class DelegadoNotionClient:
             logger.info(f"Notion page {page_id} updated with links.")
         except Exception as e:
             logger.error(f"Error updating Notion page links: {e}")
+
+    def get_case_links(self, case_id: str) -> dict:
+        """Retrieves Drive and Doc links for a case from Notion."""
+        page_id = self._get_page_id_by_case_id(case_id)
+        if not page_id: return {}
+        
+        try:
+            page = self.client.pages.retrieve(page_id=page_id)
+            props = page.get("properties", {})
+            
+            drive_url = props.get("Gdrive folder", {}).get("url")
+            doc_url = props.get("Enlace Doc", {}).get("url")
+            
+            return {"drive_url": drive_url, "doc_url": doc_url}
+        except Exception as e:
+            logger.error(f"Error retrieving case links: {e}")
+            return {}
+
+    def get_last_case_id(self, type_prefix: str) -> Optional[str]:
+        """
+        Retrieves the last used Case ID for a given prefix (e.g., 'D', 'J') in the current year.
+        """
+        if not self.client or not self.database_id: return None
+        
+        try:
+            # Sort by Name (Title) descending to get the latest ID
+            response = self.client.databases.query(
+                database_id=self.database_id,
+                sorts=[
+                    {
+                        "property": "Name",
+                        "direction": "descending"
+                    }
+                ],
+                page_size=1
+            )
+            
+            if response["results"]:
+                title_prop = response["results"][0]["properties"].get("Name", {}).get("title", [])
+                if title_prop:
+                    full_title = title_prop[0]["text"]["content"]
+                    # Extract ID: "D-2026-001 - Context" -> "D-2026-001"
+                    if " - " in full_title:
+                        return full_title.split(" - ")[0]
+                    return full_title
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching last case ID: {e}")
+            return None

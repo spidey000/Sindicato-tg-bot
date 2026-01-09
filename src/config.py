@@ -21,3 +21,15 @@ def get_authorized_users():
         return []
 
 AUTHORIZED_USERS = get_authorized_users()
+
+# OpenRouter Configuration
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+MODEL_PRIMARY = os.getenv("MODEL_PRIMARY", "deepseek/deepseek-r1:free")
+MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "moonshotai/moonlight-2:free")
+
+# Drive Configuration
+DRIVE_FOLDER_DENUNCIAS = os.getenv("DRIVE_FOLDER_DENUNCIAS")
+DRIVE_FOLDER_DEMANDAS = os.getenv("DRIVE_FOLDER_DEMANDAS")
+DRIVE_FOLDER_EMAILS = os.getenv("DRIVE_FOLDER_EMAILS")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL")

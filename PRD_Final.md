@@ -26,13 +26,13 @@ El bot actúa como un asistente jurídico-administrativo exclusivo para delegado
 5.  **Cierre**: El delegado pulsa [Finalizar]. El bot resume el estado final.
 
 ## 4. Especificaciones Técnicas
-| Componente | Función |
-| :--- | :--- |
-| Telegram API | Interfaz de usuario y gestión de archivos. |
-| IA (GPT-4/Claude) | Procesamiento de lenguaje natural y redacción jurídica. |
-| Notion API | Base de datos central: estados, metadatos y enlaces. |
-| Google Drive API | Almacenamiento de archivos y evidencias. |
-| Google Docs API | Edición dinámica del borrador. |
+| Componente | Función | Detalles de Implementación |
+| :--- | :--- | :--- |
+| Telegram API | Interfaz de usuario y gestión de archivos. | `python-telegram-bot` v20+ |
+| IA (OpenRouter API) | Procesamiento de lenguaje natural. | **Modelo Primario**: `deepseek/deepseek-r1-0528:free`<br>**Fallback**: `mistralai/devstral-2512:free` |
+| Notion API | Base de datos central. | Base de datos "Expedientes" vinculada vía Internal Integration Token. |
+| Google Drive API | Almacenamiento de archivos. | Estructura basada en carpetas raíz específicas (`denuncias`, `demandas`, `emails`) gestionadas por Service Account. |
+| Google Docs API | Edición dinámica del borrador. | Generación automática y edición colaborativa. |
 
 ## 5. Matriz de Comandos
 | Comando | Ubicación | Acción |
@@ -92,7 +92,7 @@ En lugar de un cronograma lineal, el desarrollo se estructura en "Slices" (reban
 1.  **Gestión de Sesiones**: Lógica para trackear si un usuario está "editando" un expediente específico en privado.
 2.  **Handover Público -> Privado**: Implementación del botón "Continuar en privado" y deep linking al bot.
 3.  **Manejo de Archivos**: Capacidad de recibir fotos/PDFs en privado y subirlos a la carpeta correcta de Drive.
-4.  **Refinado con IA (Prompting)**: Integración de OpenAI/Anthropic para tomar el input del usuario + contexto y reescribir el Google Doc con formato jurídico.
+4.  **Refinado con IA (Prompting)**: Integración de OpenRouter API (DeepSeek/Kimi) para tomar el input del usuario + contexto y reescribir el Google Doc con formato jurídico.
 
 ### Fase 4: Escalado de Agentes (Nuevas Capacidades)
 *Objetivo: Replicar el éxito de la Fase 2 para otros dominios.*
