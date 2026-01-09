@@ -6,7 +6,7 @@
 
 ## Phase 2: `/log` Command Implementation
 - [x] Task: Create `tests/test_log_command.py` with failing tests for the log retrieval logic (file reading, size limit). d82e9a1
-- [ ] Task: Implement `get_logs` function in `src/utils.py` (or similar) to handle safe file reading and tailing.
+- [x] Task: Implement `get_logs` function in `src/utils.py` (or similar) to handle safe file reading and tailing. 03c0d4d
 - [ ] Task: Update `src/handlers.py` to register the `/log` command handler.
 - [ ] Task: Verify `/log` command tests pass.
 - [ ] Task: Conductor - User Manual Verification 'Log Command' (Protocol in workflow.md)
