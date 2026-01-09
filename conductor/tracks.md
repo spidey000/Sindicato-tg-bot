@@ -2,7 +2,4 @@
 
 This file tracks all major tracks for the project. Each track has its own detailed plan in its respective folder.
 
----
-
-## [x] Track: Implementation of /log command for observability and Perplexity Sonar Two-Stage Verification for legal drafts.
-*Link: [./conductor/tracks/observability_verification_20260109/](./conductor/tracks/observability_verification_20260109/)*
+\n---\n\n## [~] Track: Implement real-time dynamic progress updates for document generation workflows.\n*Link: [./conductor/tracks/dynamic_progress_20260109/](./conductor/tracks/dynamic_progress_20260109/)*

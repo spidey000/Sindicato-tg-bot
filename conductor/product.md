@@ -8,6 +8,7 @@ The primary users are union delegates and representatives who need to efficientl
 
 ## Core Features
 - **Automated AI Document Generation:** Specialized agents (Inspector Laboral, Litigante Procesal, Comunicador Corporativo) generate high-quality drafts for legal complaints, demands, and emails based on user input and legal standards.
+- **Two-Stage Verification Loop:** All AI-generated drafts undergo an automatic grounding process using Perplexity Sonar LLM to verify legal accuracy and provide citations before finalization.
 - **AI Refinement Mode:** Ability to update and refine existing drafts in private mode by sending new text context, voice notes, or files, which the AI integrates into the Google Doc.
 - **Centralized Management:** Automatic registration of cases in a Notion database and creation of dedicated Google Drive folders for evidence and drafts.
 - **Smart Naming & ID System:** Automatic assignment of sequential IDs (e.g., D-2026-001) and descriptive titles (ID - Summary) for all created artifacts.
