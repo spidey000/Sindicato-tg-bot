@@ -13,7 +13,7 @@ class OpenRouterClient:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://github.com/sindicato-tg-bot", # Required by OpenRouter for rankings
-            "X-Title": "Sindicato TG Bot"
+            "X-Title": "Marxnager"
         }
 
     def completion(self, messages: list, model: str = None, response_format: dict = None) -> str:

@@ -167,7 +167,7 @@ class DelegadoDocsClient:
                 {
                     'insertText': {
                         'location': {'index': end_index},
-                        'text': f"\n\n[NOTA ADICIONAL - {os.getenv('BOT_NAME', 'Delegado 360')}]\n{text}\n"
+                        'text': f"\n\n[NOTA ADICIONAL - {os.getenv('BOT_NAME', 'Marxnager')}]\n{text}\n"
                     }
                 }
             ]

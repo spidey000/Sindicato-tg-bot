@@ -24,7 +24,7 @@ def main():
         logger.critical("❌ Error: BOT_TOKEN not found in environment variables.")
         return
 
-    logger.info("🤖 Initializing Delegado 360 Bot...")
+    logger.info("🤖 Initializing Marxnager Bot...")
 
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 

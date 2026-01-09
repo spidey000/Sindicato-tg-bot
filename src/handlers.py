@@ -65,7 +65,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "👋 Hola, Delegado.\n\n"
-        "Soy tu asistente jurídico-administrativo 'Delegado 360'.\n"
+        "Soy tu asistente jurídico-administrativo 'Marxnager'.\n"
         "Estoy listo para gestionar expedientes.\n\n"
         "Comandos disponibles:\n"
         "/denuncia [hechos] - Iniciar denuncia ITSS\n"
@@ -105,7 +105,9 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if item[0] == step_name:
                 item[1] = status
                 break
-        await update_progress_message(context, chat_id, message_id, steps_status)
+        # Pass a deep copy to avoid in-place update issues in tests/logging
+        status_copy = [item[:] for item in steps_status]
+        await update_progress_message(context, chat_id, message_id, status_copy)
 
     try:
         # 1. Drafting (AI Analysis & Draft)
@@ -408,7 +410,8 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if item[0] == step_name:
                 item[1] = status
                 break
-        await update_progress_message(context, chat_id, message_id, steps_status)
+        status_copy = [item[:] for item in steps_status]
+        await update_progress_message(context, chat_id, message_id, status_copy)
 
     try:
         # 1. Drafting (AI Analysis & Draft)
@@ -569,7 +572,8 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if item[0] == step_name:
                 item[1] = status
                 break
-        await update_progress_message(context, chat_id, message_id, steps_status)
+        status_copy = [item[:] for item in steps_status]
+        await update_progress_message(context, chat_id, message_id, status_copy)
 
     try:
         # 1. Drafting (AI Analysis & Draft)
