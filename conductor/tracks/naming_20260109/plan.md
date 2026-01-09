@@ -18,11 +18,11 @@
 - [x] Task: Conductor - User Manual Verification 'Integration Client Updates' (Protocol in workflow.md) [checkpoint: a94f3dc]
 
 ## Phase 3: Handler Refactoring and Wiring
-- [ ] Task: Refactor Command Handlers
+- [x] Task: Refactor Command Handlers a2c854c
     - [ ] Subtask: Update `denuncia_handler`: Extract context, call Agent for summary *first*, then call Notion/Drive/Docs with the generated title.
     - [ ] Subtask: Update `demanda_handler`: Replicate logic for judicial claims.
     - [ ] Subtask: Update `email_handler`: Replicate logic for emails.
-- [ ] Task: Conductor - User Manual Verification 'Handler Refactoring and Wiring' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Handler Refactoring and Wiring' (Protocol in workflow.md) [checkpoint: 9854f1b]
 
 ## Phase 4: End-to-End Verification
 - [ ] Task: Full System Test
