@@ -1,11 +1,11 @@
 # Plan: Atomic Document Creation, Rollback, and Enhanced LLM Reliability
 
-## Phase 1: LLM Reliability & Validation [checkpoint: ]
+## Phase 1: LLM Reliability & Validation [checkpoint: e2d00f2]
 - [x] Task: Update `OpenRouterClient._make_request` to support `response_format` and handle retries (3 attempts). 2399910
 - [x] Task: Implement `AgentBase.generate_structured_draft_with_retry` that validates JSON and minimum content length (> 50 chars). bc80738
 - [x] Task: Refactor `pplx_client.verify_draft` to include retry logic. 2911bce
 - [x] Task: Add unit tests for retry logic and JSON validation (mocking API failures and short responses). bc80738
-- [ ] Task: Conductor - User Manual Verification 'LLM Reliability' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'LLM Reliability' (Protocol in workflow.md) e2d00f2
 
 ## Phase 2: Atomic Rollback Utilities [checkpoint: ]
 - [ ] Task: Create `src/integrations/cleanup_helper.py` with methods to:
