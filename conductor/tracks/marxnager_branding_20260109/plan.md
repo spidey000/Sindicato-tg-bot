@@ -9,7 +9,7 @@
 ## Phase 2: Telegram UI Branding Update
 - [x] Task: Create unit tests in `tests/test_branding.py` to verify that bot handlers/utils return the correct "Marxnager" strings. 221c242
 - [x] Task: Update `src/handlers.py` and `src/utils.py` to replace all user-facing instances of "Delegado 360" or "Sindicato" with "Marxnager". febdc8e
-- [ ] Task: Update `/help` command text in `src/handlers.py`.
+- [x] Task: Update `/help` command text in `src/handlers.py`. 6aaaa1e
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Telegram UI Branding Update' (Protocol in workflow.md)
 
 ## Phase 3: Verification and Cleanup
