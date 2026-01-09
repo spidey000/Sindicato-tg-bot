@@ -2,7 +2,7 @@ import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters
 from src.middleware import restricted
-from src.utils import generate_case_id, get_logs, send_progress_message, update_progress_message
+from src.utils import generate_case_id, get_logs, send_progress_message, update_progress_message, RollbackManager
 from src.integrations.notion_client import DelegadoNotionClient
 from src.integrations.drive_client import DelegadoDriveClient
 from src.integrations.docs_client import DelegadoDocsClient
@@ -98,6 +98,7 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Initialize progress message
     message_id = await send_progress_message(update, [s[0] for s in steps_status])
     chat_id = update.effective_chat.id
+    rollback = RollbackManager()
 
     async def update_status(step_name, status):
         for item in steps_status:
@@ -108,62 +109,102 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         # 1. Drafting (AI Analysis & Draft)
-        await update_status("Drafting", "pending") # redundant but safe
+        await update_status("Drafting", "pending")
         agent = agent_orchestrator.get_agent_for_command("/denuncia")
         
-        # We call the granular methods instead of the monolithic one
-        ai_result = agent.generate_structured_draft(context_args)
-        summary = ai_result.get("summary", "Sin Título")
-        draft_content = ai_result.get("content", "")
-        await update_status("Drafting", "completed")
+        try:
+            ai_result = agent.generate_structured_draft_with_retry(context_args)
+            summary = ai_result.get("summary", "Sin Título")
+            draft_content = ai_result.get("content", "")
+            await update_status("Drafting", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Drafting", e)
+            raise e
 
         # 2. Initialization (Generate ID & Title)
-        last_id = notion.get_last_case_id("D")
-        case_id = generate_case_id("D", last_id)
-        
-        # Clean summary to be safe for filenames
-        safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
-        full_title = f"{case_id} - {safe_summary}"
-        await update_status("Initialization", "completed")
+        await update_status("Initialization", "pending")
+        try:
+            last_id = notion.get_last_case_id("D")
+            case_id = generate_case_id("D", last_id)
+            safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
+            full_title = f"{case_id} - {safe_summary}"
+            await update_status("Initialization", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Initialization", e)
+            raise e
 
         # 3. Database Entry (Notion Entry)
-        notion_page_id = notion.create_case_page({
-            "id": case_id,
-            "title": full_title,
-            "type": "Denuncia ITSS",
-            "status": "Borrador",
-            "company": "Detectar o Pendiente",
-            "created_at": datetime.now(),
-            "initial_context": context_args
-        })
-        await update_status("Database Entry", "completed")
+        await update_status("Database Entry", "pending")
+        try:
+            notion_page_id = notion.create_case_page({
+                "id": case_id,
+                "title": full_title,
+                "type": "Denuncia ITSS",
+                "status": "Borrador",
+                "company": "Detectar o Pendiente",
+                "created_at": datetime.now(),
+                "initial_context": context_args
+            })
+            if not notion_page_id:
+                raise ValueError("Falló la creación de la página en Notion")
+            rollback.set_notion_page(notion_page_id)
+            await update_status("Database Entry", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Database Entry", e)
+            raise e
 
         # 4. File Structure (Drive Folder)
-        drive_link, folder_id = None, None
-        if drive.service:
-            drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="denuncia")
-            if folder_id:
-                drive.create_subfolder(folder_id, "Pruebas")
-                drive.create_subfolder(folder_id, "Respuestas")
-        await update_status("File Structure", "completed")
+        await update_status("File Structure", "pending")
+        try:
+            drive_link, folder_id = None, None
+            if drive.service:
+                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="denuncia")
+                if folder_id:
+                    rollback.set_drive_folder(folder_id)
+                    drive.create_subfolder(folder_id, "Pruebas")
+                    drive.create_subfolder(folder_id, "Respuestas")
+                else:
+                    raise ValueError("Falló la creación de la carpeta en Drive")
+            await update_status("File Structure", "completed")
+        except Exception as e:
+            rollback.trigger_failure("File Structure", e)
+            raise e
 
         # 5. Verification (Perplexity Grounding)
-        verification_feedback = await agent.verify_draft_content(draft_content)
-        await update_status("Verification", "completed")
+        await update_status("Verification", "pending")
+        try:
+            verification_feedback = await agent.verify_draft_content(draft_content)
+            await update_status("Verification", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Verification", e)
+            raise e
 
         # 6. Refinement (Final AI polishing)
-        if verification_feedback:
-            draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
-        await update_status("Refinement", "completed")
+        await update_status("Refinement", "pending")
+        try:
+            if verification_feedback:
+                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+            await update_status("Refinement", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Refinement", e)
+            raise e
 
         # 7. Docs Creation (Google Doc)
-        doc_link = None
-        if folder_id and docs.service:
-            doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+        await update_status("Docs Creation", "pending")
+        try:
+            doc_link = None
+            if folder_id and docs.service:
+                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+                # doc_id is not explicitly returned by create_draft_document, but folder deletion covers it.
+                if not doc_link:
+                    raise ValueError("Falló la creación del documento de Google")
 
-        if notion_page_id and (drive_link or doc_link):
-            notion.update_page_links(notion_page_id, drive_link, doc_link)
-        await update_status("Docs Creation", "completed")
+            if notion_page_id and (drive_link or doc_link):
+                notion.update_page_links(notion_page_id, drive_link, doc_link)
+            await update_status("Docs Creation", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Docs Creation", e)
+            raise e
 
         # Final Response
         response = f"✅ *EXPEDIENTE CREADO*\n\n📋 *ID:* `{case_id}`\n📂 *Tipo:* Denuncia ITSS\n📝 *Asunto:* {safe_summary}\n👤 *Responsable:* {user}\n\n"
@@ -187,7 +228,10 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 item[1] = "failed"
                 break
         await update_progress_message(context, chat_id, message_id, steps_status)
-        await update.message.reply_text(f"❌ Error durante el proceso: {e}")
+        
+        # ROLLBACK
+        rollback_report = await rollback.execute_rollback()
+        await update.message.reply_text(rollback_report, parse_mode='Markdown')
 
 @restricted
 async def update_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -357,6 +401,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Initialize progress message
     message_id = await send_progress_message(update, [s[0] for s in steps_status])
     chat_id = update.effective_chat.id
+    rollback = RollbackManager()
 
     async def update_status(step_name, status):
         for item in steps_status:
@@ -370,59 +415,101 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update_status("Drafting", "pending")
         agent = agent_orchestrator.get_agent_for_command("/demanda")
         
-        # Granular calls
-        ai_result = agent.generate_structured_draft(context_args)
-        summary = ai_result.get("summary", "Sin Título")
-        draft_content = ai_result.get("content", "")
-        await update_status("Drafting", "completed")
+        try:
+            # Granular calls
+            ai_result = agent.generate_structured_draft_with_retry(context_args)
+            summary = ai_result.get("summary", "Sin Título")
+            draft_content = ai_result.get("content", "")
+            await update_status("Drafting", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Drafting", e)
+            raise e
 
         # 2. Initialization (Generate ID & Title)
-        last_id = notion.get_last_case_id("J")
-        case_id = generate_case_id("J", last_id)
-        
-        # Clean summary
-        safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
-        full_title = f"{case_id} - {safe_summary}"
-        await update_status("Initialization", "completed")
+        await update_status("Initialization", "pending")
+        try:
+            last_id = notion.get_last_case_id("J")
+            case_id = generate_case_id("J", last_id)
+            
+            # Clean summary
+            safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
+            full_title = f"{case_id} - {safe_summary}"
+            await update_status("Initialization", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Initialization", e)
+            raise e
 
         # 3. Database Entry (Notion)
-        notion_page_id = notion.create_case_page({
-            "id": case_id,
-            "title": full_title,
-            "type": "Demanda Judicial",
-            "status": "Borrador",
-            "created_at": datetime.now(),
-            "initial_context": context_args
-        })
-        await update_status("Database Entry", "completed")
+        await update_status("Database Entry", "pending")
+        try:
+            notion_page_id = notion.create_case_page({
+                "id": case_id,
+                "title": full_title,
+                "type": "Demanda Judicial",
+                "status": "Borrador",
+                "created_at": datetime.now(),
+                "initial_context": context_args
+            })
+            if not notion_page_id:
+                raise ValueError("Falló la creación de la página en Notion")
+            rollback.set_notion_page(notion_page_id)
+            await update_status("Database Entry", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Database Entry", e)
+            raise e
 
         # 4. File Structure (Drive)
-        drive_link, folder_id = None, None
-        if drive.service:
-            drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="demanda")
-            if folder_id:
-                drive.create_subfolder(folder_id, "Pruebas")
-                drive.create_subfolder(folder_id, "Procedimiento")
-        await update_status("File Structure", "completed")
+        await update_status("File Structure", "pending")
+        try:
+            drive_link, folder_id = None, None
+            if drive.service:
+                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="demanda")
+                if folder_id:
+                    rollback.set_drive_folder(folder_id)
+                    drive.create_subfolder(folder_id, "Pruebas")
+                    drive.create_subfolder(folder_id, "Procedimiento")
+                else:
+                    raise ValueError("Falló la creación de la carpeta en Drive")
+            await update_status("File Structure", "completed")
+        except Exception as e:
+            rollback.trigger_failure("File Structure", e)
+            raise e
 
         # 5. Verification
-        verification_feedback = await agent.verify_draft_content(draft_content)
-        await update_status("Verification", "completed")
+        await update_status("Verification", "pending")
+        try:
+            verification_feedback = await agent.verify_draft_content(draft_content)
+            await update_status("Verification", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Verification", e)
+            raise e
 
         # 6. Refinement
-        if verification_feedback:
-            draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
-        await update_status("Refinement", "completed")
+        await update_status("Refinement", "pending")
+        try:
+            if verification_feedback:
+                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+            await update_status("Refinement", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Refinement", e)
+            raise e
 
         # 7. Docs Creation
-        doc_link = None
-        if folder_id and docs.service:
-            doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+        await update_status("Docs Creation", "pending")
+        try:
+            doc_link = None
+            if folder_id and docs.service:
+                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+                if not doc_link:
+                    raise ValueError("Falló la creación del documento de Google")
 
-        # Notion Update
-        if notion_page_id and (drive_link or doc_link):
-            notion.update_page_links(notion_page_id, drive_link, doc_link)
-        await update_status("Docs Creation", "completed")
+            # Notion Update
+            if notion_page_id and (drive_link or doc_link):
+                notion.update_page_links(notion_page_id, drive_link, doc_link)
+            await update_status("Docs Creation", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Docs Creation", e)
+            raise e
 
         # Final Response
         response = f"✅ *EXPEDIENTE JUDICIAL CREADO*\n\n📋 *ID:* `{case_id}`\n⚖️ *Tipo:* Demanda\n📝 *Asunto:* {safe_summary}\n"
@@ -445,7 +532,10 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 item[1] = "failed"
                 break
         await update_progress_message(context, chat_id, message_id, steps_status)
-        await update.message.reply_text(f"❌ Error durante el proceso: {e}")
+        
+        # ROLLBACK
+        rollback_report = await rollback.execute_rollback()
+        await update.message.reply_text(rollback_report, parse_mode='Markdown')
 
 @restricted
 async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -472,6 +562,7 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Initialize progress message
     message_id = await send_progress_message(update, [s[0] for s in steps_status])
     chat_id = update.effective_chat.id
+    rollback = RollbackManager()
 
     async def update_status(step_name, status):
         for item in steps_status:
@@ -485,53 +576,96 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update_status("Drafting", "pending")
         agent = agent_orchestrator.get_agent_for_command("/email")
         
-        ai_result = agent.generate_structured_draft(context_args)
-        summary = ai_result.get("summary", "Sin Título")
-        draft_content = ai_result.get("content", "")
-        await update_status("Drafting", "completed")
+        try:
+            ai_result = agent.generate_structured_draft_with_retry(context_args)
+            summary = ai_result.get("summary", "Sin Título")
+            draft_content = ai_result.get("content", "")
+            await update_status("Drafting", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Drafting", e)
+            raise e
 
         # 2. Initialization
-        last_id = notion.get_last_case_id("E")
-        case_id = generate_case_id("E", last_id)
-        
-        safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
-        full_title = f"{case_id} - {safe_summary}"
-        await update_status("Initialization", "completed")
+        await update_status("Initialization", "pending")
+        try:
+            last_id = notion.get_last_case_id("E")
+            case_id = generate_case_id("E", last_id)
+            
+            safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
+            full_title = f"{case_id} - {safe_summary}"
+            await update_status("Initialization", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Initialization", e)
+            raise e
 
         # 3. Database Entry
-        notion_page_id = notion.create_case_page({
-            "id": case_id,
-            "title": full_title,
-            "type": "Email RRHH",
-            "status": "Borrador",
-            "created_at": datetime.now(),
-            "initial_context": context_args
-        })
-        await update_status("Database Entry", "completed")
+        await update_status("Database Entry", "pending")
+        try:
+            notion_page_id = notion.create_case_page({
+                "id": case_id,
+                "title": full_title,
+                "type": "Email RRHH",
+                "status": "Borrador",
+                "created_at": datetime.now(),
+                "initial_context": context_args
+            })
+            if not notion_page_id:
+                raise ValueError("Falló la creación de la página en Notion")
+            rollback.set_notion_page(notion_page_id)
+            await update_status("Database Entry", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Database Entry", e)
+            raise e
 
         # 4. File Structure
-        drive_link, folder_id = None, None
-        if drive.service:
-            drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="email")
-        await update_status("File Structure", "completed")
+        await update_status("File Structure", "pending")
+        try:
+            drive_link, folder_id = None, None
+            if drive.service:
+                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="email")
+                if folder_id:
+                    rollback.set_drive_folder(folder_id)
+                else:
+                    raise ValueError("Falló la creación de la carpeta en Drive")
+            await update_status("File Structure", "completed")
+        except Exception as e:
+            rollback.trigger_failure("File Structure", e)
+            raise e
 
         # 5. Verification
-        verification_feedback = await agent.verify_draft_content(draft_content)
-        await update_status("Verification", "completed")
+        await update_status("Verification", "pending")
+        try:
+            verification_feedback = await agent.verify_draft_content(draft_content)
+            await update_status("Verification", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Verification", e)
+            raise e
 
         # 6. Refinement
-        if verification_feedback:
-            draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
-        await update_status("Refinement", "completed")
+        await update_status("Refinement", "pending")
+        try:
+            if verification_feedback:
+                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+            await update_status("Refinement", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Refinement", e)
+            raise e
 
         # 7. Docs Creation
-        doc_link = None
-        if folder_id and docs.service:
-            doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+        await update_status("Docs Creation", "pending")
+        try:
+            doc_link = None
+            if folder_id and docs.service:
+                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+                if not doc_link:
+                    raise ValueError("Falló la creación del documento de Google")
 
-        if notion_page_id and (drive_link or doc_link):
-            notion.update_page_links(notion_page_id, drive_link, doc_link)
-        await update_status("Docs Creation", "completed")
+            if notion_page_id and (drive_link or doc_link):
+                notion.update_page_links(notion_page_id, drive_link, doc_link)
+            await update_status("Docs Creation", "completed")
+        except Exception as e:
+            rollback.trigger_failure("Docs Creation", e)
+            raise e
 
         response = f"✅ *COMUNICACIÓN CREADA*\n\n📋 *ID:* `{case_id}`\n📧 *Tipo:* Email RRHH\n📝 *Asunto:* {safe_summary}\n"
         
@@ -545,4 +679,9 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 item[1] = "failed"
                 break
         await update_progress_message(context, chat_id, message_id, steps_status)
-        await update.message.reply_text(f"❌ Error durante el proceso: {e}")
+        
+        # ROLLBACK
+        rollback_report = await rollback.execute_rollback()
+        await update.message.reply_text(rollback_report, parse_mode='Markdown')
+    
+    
