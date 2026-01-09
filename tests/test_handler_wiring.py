@@ -26,9 +26,9 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         # Mock Agent
         mock_agent = MagicMock()
         # Mock granular methods
-        mock_agent.generate_structured_draft.return_value = {
+        mock_agent.generate_structured_draft_with_retry.return_value = {
             "summary": "Resumen IA",
-            "content": "Contenido IA"
+            "content": "Contenido IA que es suficientemente largo para pasar la validación de cincuenta caracteres."
         }
         mock_agent.verify_draft_content = AsyncMock(return_value=None) 
         mock_agent.refine_draft_with_feedback.return_value = "Contenido IA Refinado"
@@ -37,7 +37,7 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         
         # Mock IDs
         mock_notion.get_last_case_id.return_value = None # Start fresh
-        mock_notion.create_case_page.return_value = "page_id"
+        mock_notion.create_case_page.return_value = "00000000-0000-0000-0000-000000000000"
         mock_drive.service = True
         mock_drive.create_case_folder.return_value = ("link", "folder_id")
         mock_docs.service = True
@@ -45,8 +45,8 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         # Action
         await denuncia_handler(update, context)
         
-        # Verify Agent called with generate_structured_draft
-        mock_agent.generate_structured_draft.assert_called_once()
+        # Verify Agent called with generate_structured_draft_with_retry
+        mock_agent.generate_structured_draft_with_retry.assert_called_once()
         mock_agent.verify_draft_content.assert_called_once()
         
         # Verify Notion called with title containing summary

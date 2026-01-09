@@ -26,14 +26,13 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         
         mock_agent = MagicMock()
         mock_orch.get_agent_for_command.return_value = mock_agent
-        mock_agent.generate_structured_draft_verified = AsyncMock(return_value={"summary": "Resumen", "content": "Contenido"})
-        mock_agent.generate_structured_draft.return_value = {"summary": "Resumen", "content": "Contenido"}
+        mock_agent.generate_structured_draft_with_retry.return_value = {"summary": "Resumen", "content": "Contenido que es suficientemente largo para pasar la validación de cincuenta caracteres."}
         mock_agent.verify_draft_content = AsyncMock(return_value="Feedback")
         mock_agent.refine_draft_with_feedback.return_value = "Contenido Refinado"
         
         mock_notion.get_last_case_id.return_value = "001"
         mock_gen_id.return_value = "D-2026-002"
-        mock_notion.create_case_page.return_value = "notion_id"
+        mock_notion.create_case_page.return_value = "00000000-0000-0000-0000-000000000000"
         
         mock_drive.service = True
         mock_drive.create_case_folder.return_value = ("drive_link", "folder_id")
@@ -48,9 +47,9 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         mock_send_progress.assert_called_once()
         
         # Verify update_progress_message was called multiple times (for each step)
-        # Sequence: Drafting, Initialization, Database Entry, File Structure, Verification, Refinement, Docs Creation
-        # (Total 7 steps)
-        self.assertGreaterEqual(mock_update_progress.call_count, 7)
+        # Sequence: Drafting (P+C), Initialization (P+C), Database Entry (P+C), File Structure (P+C), Verification (P+C), Refinement (P+C), Docs Creation (P+C)
+        # Total 14 steps
+        self.assertGreaterEqual(mock_update_progress.call_count, 14)
         
         # Verify final response was sent (using edit or new message as per final step)
         # The spec says "Final State: The progress message is either replaced or updated one last time"
@@ -83,13 +82,13 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         mock_agent = MagicMock()
         mock_orch.get_agent_for_command.return_value = mock_agent
         # Ensure we expect granular calls
-        mock_agent.generate_structured_draft.return_value = {"summary": "Resumen", "content": "Contenido"}
+        mock_agent.generate_structured_draft_with_retry.return_value = {"summary": "Resumen", "content": "Contenido que es suficientemente largo para pasar la validación de cincuenta caracteres."}
         mock_agent.verify_draft_content = AsyncMock(return_value="Feedback")
         mock_agent.refine_draft_with_feedback.return_value = "Contenido Refinado"
         
         mock_notion.get_last_case_id.return_value = "001"
         mock_gen_id.return_value = "J-2026-002"
-        mock_notion.create_case_page.return_value = "notion_id"
+        mock_notion.create_case_page.return_value = "00000000-0000-0000-0000-000000000000"
         
         mock_drive.service = True
         mock_drive.create_case_folder.return_value = ("drive_link", "folder_id")
@@ -104,10 +103,10 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         mock_send_progress.assert_called_once()
         
         # Verify update_progress_message was called multiple times (for each step)
-        self.assertGreaterEqual(mock_update_progress.call_count, 7)
+        self.assertGreaterEqual(mock_update_progress.call_count, 14)
         
         # Verify granular agent calls
-        mock_agent.generate_structured_draft.assert_called_once()
+        mock_agent.generate_structured_draft_with_retry.assert_called_once()
         mock_agent.verify_draft_content.assert_called_once()
         # refine_draft_with_feedback is called only if feedback exists (it does here)
         mock_agent.refine_draft_with_feedback.assert_called_once()
@@ -137,13 +136,13 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         mock_agent = MagicMock()
         mock_orch.get_agent_for_command.return_value = mock_agent
         # Ensure we expect granular calls
-        mock_agent.generate_structured_draft.return_value = {"summary": "Resumen", "content": "Contenido"}
+        mock_agent.generate_structured_draft_with_retry.return_value = {"summary": "Resumen", "content": "Contenido que es suficientemente largo para pasar la validación de cincuenta caracteres."}
         mock_agent.verify_draft_content = AsyncMock(return_value="Feedback")
         mock_agent.refine_draft_with_feedback.return_value = "Contenido Refinado"
         
         mock_notion.get_last_case_id.return_value = "001"
         mock_gen_id.return_value = "E-2026-002"
-        mock_notion.create_case_page.return_value = "notion_id"
+        mock_notion.create_case_page.return_value = "00000000-0000-0000-0000-000000000000"
         
         mock_drive.service = True
         mock_drive.create_case_folder.return_value = ("drive_link", "folder_id")
@@ -158,10 +157,10 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         mock_send_progress.assert_called_once()
         
         # Verify update_progress_message was called multiple times (for each step)
-        self.assertGreaterEqual(mock_update_progress.call_count, 7)
+        self.assertGreaterEqual(mock_update_progress.call_count, 14)
         
         # Verify granular agent calls
-        mock_agent.generate_structured_draft.assert_called_once()
+        mock_agent.generate_structured_draft_with_retry.assert_called_once()
         mock_agent.verify_draft_content.assert_called_once()
         # refine_draft_with_feedback is called only if feedback exists (it does here)
         mock_agent.refine_draft_with_feedback.assert_called_once()
