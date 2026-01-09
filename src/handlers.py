@@ -86,7 +86,7 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 1. AI Analysis & Draft
     agent = agent_orchestrator.get_agent_for_command("/denuncia")
-    ai_result = agent.generate_structured_draft(context_args)
+    ai_result = await agent.generate_structured_draft_verified(context_args)
     
     summary = ai_result.get("summary", "Sin Título")
     draft_content = ai_result.get("content", "")
@@ -298,7 +298,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 1. AI Analysis & Draft
     agent = agent_orchestrator.get_agent_for_command("/demanda")
-    ai_result = agent.generate_structured_draft(context_args)
+    ai_result = await agent.generate_structured_draft_verified(context_args)
     
     summary = ai_result.get("summary", "Sin Título")
     draft_content = ai_result.get("content", "")
@@ -363,7 +363,7 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 1. AI Analysis & Draft
     agent = agent_orchestrator.get_agent_for_command("/email")
-    ai_result = agent.generate_structured_draft(context_args)
+    ai_result = await agent.generate_structured_draft_verified(context_args)
     
     summary = ai_result.get("summary", "Sin Título")
     draft_content = ai_result.get("content", "")

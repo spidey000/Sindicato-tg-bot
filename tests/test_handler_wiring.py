@@ -22,10 +22,12 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         
         # Mock Agent
         mock_agent = MagicMock()
-        mock_agent.generate_structured_draft.return_value = {
+        # Mock async verified draft generation
+        mock_agent.generate_structured_draft_verified = AsyncMock(return_value={
             "summary": "Resumen IA",
-            "content": "Contenido IA"
-        }
+            "content": "Contenido IA",
+            "verification_status": "Verified"
+        })
         # Fallback for old method if called
         mock_agent.generate_draft.return_value = "Old Content"
         
@@ -41,8 +43,8 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         # Action
         await denuncia_handler(update, context)
         
-        # Verify Agent called with generate_structured_draft
-        mock_agent.generate_structured_draft.assert_called_once()
+        # Verify Agent called with generate_structured_draft_verified
+        mock_agent.generate_structured_draft_verified.assert_called_once()
         
         # Verify Notion called with title containing summary
         args, kwargs = mock_notion.create_case_page.call_args
