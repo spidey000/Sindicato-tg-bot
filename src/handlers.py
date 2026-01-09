@@ -2,18 +2,46 @@ import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters
 from src.middleware import restricted
-from src.utils import generate_case_id
+from src.utils import generate_case_id, get_logs
 from src.integrations.notion_client import DelegadoNotionClient
 from src.integrations.drive_client import DelegadoDriveClient
 from src.integrations.docs_client import DelegadoDocsClient
 from src.session_manager import session_manager, SessionState
 from src.agents.orchestrator import agent_orchestrator
 from datetime import datetime
+import io
 
 # Initialize clients
 notion = DelegadoNotionClient()
 drive = DelegadoDriveClient()
 docs = DelegadoDocsClient()
+
+@restricted
+async def log_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handler for the /log command.
+    Retrieves the system logs (last 10MB) and sends them as a file attachment.
+    """
+    await update.message.reply_text("⏳ Recuperando registros del sistema...")
+    
+    # Path to the log file (as defined in logging_config.py)
+    log_path = "logs/bot.log"
+    
+    logs = get_logs(log_path)
+    
+    if not logs:
+        await update.message.reply_text("No logs found or empty.")
+        return
+
+    # Create a file-like object in memory
+    log_file = io.BytesIO(logs.encode('utf-8'))
+    log_file.name = "system.log"
+    
+    await update.message.reply_document(
+        document=log_file,
+        filename="system.log",
+        caption="📋 Aquí tienes los últimos registros del sistema."
+    )
 
 @restricted
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
