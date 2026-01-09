@@ -2,7 +2,7 @@ import re
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, MessageHandler, filters
 from src.middleware import restricted
-from src.utils import generate_case_id, get_logs
+from src.utils import generate_case_id, get_logs, send_progress_message, update_progress_message
 from src.integrations.notion_client import DelegadoNotionClient
 from src.integrations.drive_client import DelegadoDriveClient
 from src.integrations.docs_client import DelegadoDocsClient
@@ -82,65 +82,112 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user = update.effective_user.first_name
-    await update.message.reply_text(f"🔄 Analizando caso y redactando borrador...")
-
-    # 1. AI Analysis & Draft
-    agent = agent_orchestrator.get_agent_for_command("/denuncia")
-    ai_result = await agent.generate_structured_draft_verified(context_args)
     
-    summary = ai_result.get("summary", "Sin Título")
-    draft_content = ai_result.get("content", "")
+    # Define steps for progress tracking
+    steps = [
+        "Drafting",
+        "Initialization",
+        "Database Entry",
+        "File Structure",
+        "Verification",
+        "Refinement",
+        "Docs Creation"
+    ]
+    steps_status = [[step, "pending"] for step in steps]
     
-    # 2. Generate ID
-    last_id = notion.get_last_case_id("D")
-    case_id = generate_case_id("D", last_id)
-    
-    # 3. Construct Full Title
-    # Clean summary to be safe for filenames
-    safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
-    full_title = f"{case_id} - {safe_summary}"
+    # Initialize progress message
+    message_id = await send_progress_message(update, [s[0] for s in steps_status])
+    chat_id = update.effective_chat.id
 
-    # 4. Notion Entry
-    notion_page_id = notion.create_case_page({
-        "id": case_id,
-        "title": full_title,
-        "type": "Denuncia ITSS",
-        "status": "Borrador",
-        "company": "Detectar o Pendiente",
-        "created_at": datetime.now(),
-        "initial_context": context_args
-    })
+    async def update_status(step_name, status):
+        for item in steps_status:
+            if item[0] == step_name:
+                item[1] = status
+                break
+        await update_progress_message(context, chat_id, message_id, steps_status)
 
-    # 5. Drive Folder
-    drive_link, folder_id = None, None
-    if drive.service:
-        drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="denuncia")
-        if folder_id:
-            drive.create_subfolder(folder_id, "Pruebas")
-            drive.create_subfolder(folder_id, "Respuestas")
+    try:
+        # 1. Drafting (AI Analysis & Draft)
+        await update_status("Drafting", "pending") # redundant but safe
+        agent = agent_orchestrator.get_agent_for_command("/denuncia")
+        
+        # We call the granular methods instead of the monolithic one
+        ai_result = agent.generate_structured_draft(context_args)
+        summary = ai_result.get("summary", "Sin Título")
+        draft_content = ai_result.get("content", "")
+        await update_status("Drafting", "completed")
 
-    # 6. Google Doc
-    doc_link = None
-    if folder_id and docs.service:
-        doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+        # 2. Initialization (Generate ID & Title)
+        last_id = notion.get_last_case_id("D")
+        case_id = generate_case_id("D", last_id)
+        
+        # Clean summary to be safe for filenames
+        safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
+        full_title = f"{case_id} - {safe_summary}"
+        await update_status("Initialization", "completed")
 
-    # 7. Update Notion links
-    if notion_page_id and (drive_link or doc_link):
-        notion.update_page_links(notion_page_id, drive_link, doc_link)
+        # 3. Database Entry (Notion Entry)
+        notion_page_id = notion.create_case_page({
+            "id": case_id,
+            "title": full_title,
+            "type": "Denuncia ITSS",
+            "status": "Borrador",
+            "company": "Detectar o Pendiente",
+            "created_at": datetime.now(),
+            "initial_context": context_args
+        })
+        await update_status("Database Entry", "completed")
 
-    # 8. Final Response
-    response = f"✅ *EXPEDIENTE CREADO*\n\n📋 *ID:* `{case_id}`\n📂 *Tipo:* Denuncia ITSS\n📝 *Asunto:* {safe_summary}\n👤 *Responsable:* {user}\n\n"
-    
-    if notion_page_id: response += f"🔗 [Ver en Notion](https://notion.so/{notion_page_id.replace('-', '')})\n"
-    if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
-    if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+        # 4. File Structure (Drive Folder)
+        drive_link, folder_id = None, None
+        if drive.service:
+            drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="denuncia")
+            if folder_id:
+                drive.create_subfolder(folder_id, "Pruebas")
+                drive.create_subfolder(folder_id, "Respuestas")
+        await update_status("File Structure", "completed")
 
-    bot_username = context.bot.username
-    deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
-    keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        # 5. Verification (Perplexity Grounding)
+        verification_feedback = await agent.verify_draft_content(draft_content)
+        await update_status("Verification", "completed")
 
-    await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
+        # 6. Refinement (Final AI polishing)
+        if verification_feedback:
+            draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+        await update_status("Refinement", "completed")
+
+        # 7. Docs Creation (Google Doc)
+        doc_link = None
+        if folder_id and docs.service:
+            doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+
+        if notion_page_id and (drive_link or doc_link):
+            notion.update_page_links(notion_page_id, drive_link, doc_link)
+        await update_status("Docs Creation", "completed")
+
+        # Final Response
+        response = f"✅ *EXPEDIENTE CREADO*\n\n📋 *ID:* `{case_id}`\n📂 *Tipo:* Denuncia ITSS\n📝 *Asunto:* {safe_summary}\n👤 *Responsable:* {user}\n\n"
+        
+        if notion_page_id: response += f"🔗 [Ver en Notion](https://notion.so/{notion_page_id.replace('-', '')})\n"
+        if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
+        if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+
+        bot_username = context.bot.username
+        deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
+        keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Replace or follow-up with final card
+        await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
+
+    except Exception as e:
+        # Mark current pending step as failed
+        for item in steps_status:
+            if item[1] == "pending":
+                item[1] = "failed"
+                break
+        await update_progress_message(context, chat_id, message_id, steps_status)
+        await update.message.reply_text(f"❌ Error durante el proceso: {e}")
 
 @restricted
 async def update_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -294,61 +341,111 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     user = update.effective_user.first_name
-    await update.message.reply_text(f"🔄 Analizando caso judicial y redactando demanda...")
-
-    # 1. AI Analysis & Draft
-    agent = agent_orchestrator.get_agent_for_command("/demanda")
-    ai_result = await agent.generate_structured_draft_verified(context_args)
     
-    summary = ai_result.get("summary", "Sin Título")
-    draft_content = ai_result.get("content", "")
-
-    # 2. Generate ID
-    last_id = notion.get_last_case_id("J")
-    case_id = generate_case_id("J", last_id)
+    # Define steps for progress tracking
+    steps = [
+        "Drafting",
+        "Initialization",
+        "Database Entry",
+        "File Structure",
+        "Verification",
+        "Refinement",
+        "Docs Creation"
+    ]
+    steps_status = [[step, "pending"] for step in steps]
     
-    # 3. Construct Title
-    safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
-    full_title = f"{case_id} - {safe_summary}"
+    # Initialize progress message
+    message_id = await send_progress_message(update, [s[0] for s in steps_status])
+    chat_id = update.effective_chat.id
 
-    # Notion
-    notion_page_id = notion.create_case_page({
-        "id": case_id,
-        "title": full_title,
-        "type": "Demanda Judicial",
-        "status": "Borrador",
-        "created_at": datetime.now(),
-        "initial_context": context_args
-    })
+    async def update_status(step_name, status):
+        for item in steps_status:
+            if item[0] == step_name:
+                item[1] = status
+                break
+        await update_progress_message(context, chat_id, message_id, steps_status)
 
-    # Drive
-    drive_link, folder_id = None, None
-    if drive.service:
-        drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="demanda")
-        if folder_id:
-            drive.create_subfolder(folder_id, "Pruebas")
-            drive.create_subfolder(folder_id, "Procedimiento")
+    try:
+        # 1. Drafting (AI Analysis & Draft)
+        await update_status("Drafting", "pending")
+        agent = agent_orchestrator.get_agent_for_command("/demanda")
+        
+        # Granular calls
+        ai_result = agent.generate_structured_draft(context_args)
+        summary = ai_result.get("summary", "Sin Título")
+        draft_content = ai_result.get("content", "")
+        await update_status("Drafting", "completed")
 
-    # Doc
-    doc_link = None
-    if folder_id and docs.service:
-        doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+        # 2. Initialization (Generate ID & Title)
+        last_id = notion.get_last_case_id("J")
+        case_id = generate_case_id("J", last_id)
+        
+        # Clean summary
+        safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
+        full_title = f"{case_id} - {safe_summary}"
+        await update_status("Initialization", "completed")
 
-    # Notion Update
-    if notion_page_id and (drive_link or doc_link):
-        notion.update_page_links(notion_page_id, drive_link, doc_link)
+        # 3. Database Entry (Notion)
+        notion_page_id = notion.create_case_page({
+            "id": case_id,
+            "title": full_title,
+            "type": "Demanda Judicial",
+            "status": "Borrador",
+            "created_at": datetime.now(),
+            "initial_context": context_args
+        })
+        await update_status("Database Entry", "completed")
 
-    response = f"✅ *EXPEDIENTE JUDICIAL CREADO*\n\n📋 *ID:* `{case_id}`\n⚖️ *Tipo:* Demanda\n📝 *Asunto:* {safe_summary}\n"
-    
-    if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
-    if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+        # 4. File Structure (Drive)
+        drive_link, folder_id = None, None
+        if drive.service:
+            drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="demanda")
+            if folder_id:
+                drive.create_subfolder(folder_id, "Pruebas")
+                drive.create_subfolder(folder_id, "Procedimiento")
+        await update_status("File Structure", "completed")
 
-    bot_username = context.bot.username
-    deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
-    keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+        # 5. Verification
+        verification_feedback = await agent.verify_draft_content(draft_content)
+        await update_status("Verification", "completed")
 
-    await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
+        # 6. Refinement
+        if verification_feedback:
+            draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+        await update_status("Refinement", "completed")
+
+        # 7. Docs Creation
+        doc_link = None
+        if folder_id and docs.service:
+            doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+
+        # Notion Update
+        if notion_page_id and (drive_link or doc_link):
+            notion.update_page_links(notion_page_id, drive_link, doc_link)
+        await update_status("Docs Creation", "completed")
+
+        # Final Response
+        response = f"✅ *EXPEDIENTE JUDICIAL CREADO*\n\n📋 *ID:* `{case_id}`\n⚖️ *Tipo:* Demanda\n📝 *Asunto:* {safe_summary}\n"
+        
+        if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
+        if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+
+        bot_username = context.bot.username
+        deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
+        keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Replace or follow-up with final card
+        await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
+
+    except Exception as e:
+         # Mark current pending step as failed
+        for item in steps_status:
+            if item[1] == "pending":
+                item[1] = "failed"
+                break
+        await update_progress_message(context, chat_id, message_id, steps_status)
+        await update.message.reply_text(f"❌ Error durante el proceso: {e}")
 
 @restricted
 async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
