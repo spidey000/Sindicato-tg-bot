@@ -2,7 +2,7 @@
 
 This plan implements a multi-stage LLM strategy with specific models for drafting, existing models for refinement, and a global JSON repair mechanism using Qwen.
 
-## Phase 1: Infrastructure & Configuration
+## Phase 1: Infrastructure & Configuration [checkpoint: af3d0f6]
 Focus on updating `config.py` and `OpenRouterClient` to handle the new model sets and the Qwen repair call.
 
 - [x] **Task 1: Update Configuration and Constants** <!-- 838b319 -->
