@@ -29,7 +29,7 @@ class AgentBase(ABC):
         ]
         
         logger.info(f"Generating draft with {self.__class__.__name__} using OpenRouter...")
-        return self.llm_client.completion(messages)
+        return self.llm_client.completion(messages, task_type="DRAFT")
 
     async def verify_draft_content(self, content: str, thesis: str = "", specific_point: str = "", area: str = "") -> str:
         """
@@ -108,7 +108,7 @@ class AgentBase(ABC):
         json_instruction = (
             "\n\nIMPORTANT: Return your response in pure JSON format with the following keys:\n"
             "- 'summary': A concise summary of the topic (max 5-7 words), e.g., 'Falta de EPIs'.\n"
-            "- 'content': The full drafted document content.\n"
+            "- 'content': The full drafted document content. CRITICAL: You must escape all newlines within the content string using \\n. Do not use literal newlines inside the string value.\n"
             "- 'thesis': The central legal argument (e.g., 'Nulidad del despido por discriminación').\n"
             "- 'specific_point': Key legal doctrine to research (e.g., 'Inversión de la carga de la prueba').\n"
             "- 'area': Specific labor law domain (e.g., 'Despido', 'Modificación sustancial').\n"
@@ -128,7 +128,8 @@ class AgentBase(ABC):
             # Request JSON object format
             raw_response = self.llm_client.completion(
                 messages, 
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
+                task_type="DRAFT"
             )
             
             try:
@@ -149,7 +150,7 @@ class AgentBase(ABC):
                 if first_brace != -1 and last_brace != -1:
                     cleaned_response = cleaned_response[first_brace:last_brace+1]
                 
-                data = json.loads(cleaned_response)
+                data = json.loads(cleaned_response, strict=False)
                 
                 # Ensure keys exist
                 if "summary" not in data:
@@ -174,6 +175,7 @@ class AgentBase(ABC):
                 
             except (json.JSONDecodeError, ValueError) as e:
                 logger.warning(f"Validation failed on attempt {attempt + 1}: {e}")
+                logger.debug(f"Raw response snippet: {raw_response[:200]}...")
                 if attempt == max_retries - 1:
                     logger.error("All validation attempts failed.")
                     raise ValueError("Failed to generate valid draft after multiple attempts.")
@@ -206,4 +208,4 @@ class AgentBase(ABC):
         ]
         
         logger.info(f"Refining draft with {self.__class__.__name__}...")
-        return self.llm_client.completion(messages)
+        return self.llm_client.completion(messages, task_type="REFINEMENT")
