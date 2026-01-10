@@ -14,15 +14,15 @@
     - [x] Subtask: Verify tests pass.
 - [x] Task: Conductor - User Manual Verification 'Core Detection & Redaction Logic' (Protocol in workflow.md)
 
-## Phase 2: File Processing & CLI
+## Phase 2: File Processing & CLI [checkpoint: a7a49e4]
 - [x] Task: Implement File Walking & filtering (TDD) 1859f14
-    - [ ] Subtask: Write failing test for scanning a directory, ignoring `.git` and binary files.
-    - [ ] Subtask: Implement file walker in `secret_scanner.py`.
-    - [ ] Subtask: Verify tests pass.
+    - [x] Subtask: Write failing test for scanning a directory, ignoring `.git` and binary files.
+    - [x] Subtask: Implement file walker in `secret_scanner.py`.
+    - [x] Subtask: Verify tests pass.
 - [x] Task: Implement CLI entry point and Reporting f649ab3
-    - [ ] Subtask: Add `main` block to `scripts/security/secret_scanner.py` to accept arguments.
-    - [ ] Subtask: Implement console reporting of changed files and found secrets.
-- [ ] Task: Conductor - User Manual Verification 'File Processing & CLI' (Protocol in workflow.md)
+    - [x] Subtask: Add `main` block to `scripts/security/secret_scanner.py` to accept arguments.
+    - [x] Subtask: Implement console reporting of changed files and found secrets.
+- [x] Task: Conductor - User Manual Verification 'File Processing & CLI' (Protocol in workflow.md)
 
 ## Phase 3: Execution & Cleanup
 - [ ] Task: Execute Secret Scan
