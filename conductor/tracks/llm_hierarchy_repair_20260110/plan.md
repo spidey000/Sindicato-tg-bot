@@ -20,7 +20,7 @@ Implement the sequential fallback for the first draft generation.
     - [ ] Modify `OpenRouterClient` to handle the try-except block for Primary -> Fallback models when `task_type=DRAFT`.
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2: Implementation of Model Hierarchy (Drafting)' (Protocol in workflow.md)**
 
-## Phase 3: JSON Repair Mechanism
+## Phase 3: JSON Repair Mechanism [checkpoint: 0e1cb21]
 Implement the global logic that catches invalid JSON and sends it to Qwen.
 
 - [x] **Task 1: Write Tests for JSON Repair** <!-- 868d413 -->
