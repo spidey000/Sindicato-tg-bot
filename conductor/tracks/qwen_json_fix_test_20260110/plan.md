@@ -8,13 +8,13 @@
 - [x] Task: Run the test and confirm that it fails as expected, indicating that the invalid JSON is initially detected.
 - [ ] Task: Conductor - User Manual Verification 'Create a Failing Test for Invalid JSON Detection' (Protocol in workflow.md)
 
-## Phase 2: Implement Test for Successful Qwen JSON Repair
-- [ ] Task: Modify the test case from Phase 1.
-- [ ] Task: Add assertions to verify that `OpenRouterClient._repair_json` is called when the malformed JSON is detected. This might involve mocking `_repair_json` or checking logs.
-- [ ] Task: Mock `OpenRouterClient._repair_json` (or `_make_request` specifically for the repair model call) to return a known *valid* JSON string.
-- [ ] Task: Assert that the final output returned by `OpenRouterClient.completion` is valid JSON and conforms to the expected structure.
-- [ ] Task: Assert that a log entry indicating a JSON repair attempt is generated.
-- [ ] Task: Run the test and confirm that it passes, verifying the successful repair flow.
+## Phase 2: Implement Test for Successful Qwen JSON Repair [checkpoint: 6e884f2]
+- [x] Task: Modify the test case from Phase 1.
+- [x] Task: Add assertions to verify that `OpenRouterClient._repair_json` is called when the malformed JSON is detected. This might involve mocking `_repair_json` or checking logs.
+- [x] Task: Mock `OpenRouterClient._repair_json` (or `_make_request` specifically for the repair model call) to return a known *valid* JSON string.
+- [x] Task: Assert that the final output returned by `OpenRouterClient.completion` is valid JSON and conforms to the expected structure.
+- [x] Task: Assert that a log entry indicating a JSON repair attempt is generated.
+- [x] Task: Run the test and confirm that it passes, verifying the successful repair flow.
 - [ ] Task: Conductor - User Manual Verification 'Implement Test for Successful Qwen JSON Repair' (Protocol in workflow.md)
 
 ## Phase 3: Final Verification and Cleanup
