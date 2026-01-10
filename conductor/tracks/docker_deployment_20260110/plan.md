@@ -26,7 +26,7 @@ Create the orchestration files and documentation needed for Portainer.
     - [ ] Define the `bot` service.
     - [ ] Configure environment variable mapping.
     - [ ] Set restart policy to `unless-stopped`.
-- [ ] **Task 2: Create Deployment Documentation**
+- [x] **Task 2: Create Deployment Documentation** 79e80c3
     - [ ] Create `DEPLOYMENT.md`.
     - [ ] Provide a step-by-step guide for creating a new Stack in Portainer.
     - [ ] Include a template for the environment variables.
