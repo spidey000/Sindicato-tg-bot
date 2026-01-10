@@ -14,7 +14,7 @@ Focus on creating the container image definition and ensuring the application is
     - [ ] Install Python dependencies.
     - [ ] Copy the source code.
     - [ ] Define the entry point.
-- [ ] **Task 3: Verify Environment Variable Loading**
+- [x] **Task 3: Verify Environment Variable Loading** 25c3d79
     - [ ] **Write Tests:** Create a test to ensure all critical variables (BOT_TOKEN, API_KEYS) can be loaded from the environment (not just `.env` file).
     - [ ] **Implement/Refine:** Ensure `src/config.py` handles missing `.env` gracefully when variables are provided via Docker.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Dockerization' (Protocol in workflow.md)
