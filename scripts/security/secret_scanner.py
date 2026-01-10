@@ -3,16 +3,25 @@ import subprocess
 import os
 import sys
 
-# Common patterns for secrets
-# Captures: 
-# 1=Variable Name
+# Final refined pattern for secrets:
+# - Targets KEY=VALUE or KEY: VALUE
+# - VALUE must look like a literal (starts with quote, or is a long hex/random string)
+# - Excludes safe patterns like os.getenv, or simple variable-to-variable assignments
+# Captures:
+# 1=Key name
 # 2=Whitespace before separator
 # 3=Separator (= or :)
 # 4=Whitespace after separator
-# 5=Quote (optional)
-# 6=Secret Value
+# 5=Opening quote (optional)
+# 6=Value
+# 7=Closing quote (must match opening if present)
 SECRET_PATTERN = re.compile(
-    r'''(?i)(API_KEY|TOKEN|PASSWORD|SECRET|CREDENTIALS?)(\s*)([=:])(\s*)(["'])?([^"'\s]+)\5?'''
+    r'''(?i)(API_KEY|TOKEN|PASSWORD|SECRET|CREDENTIALS?)'''      # Key
+    r'''(\s*)([=:])(\s*)'''                                     # Assignment
+    r'''(["'])?'''                                              # Optional opening quote
+    r'''(?![^"']*(?:os\.getenv|os\.environ|env\.get))'''         # Negative lookahead for safe functions
+    r'''([a-zA-Z0-9\-_]{16,})'''                                 # Value (min 16 chars, alphanumeric/dash/underscore)
+    r'''\5?'''                                                  # Optional closing quote
 )
 
 def redact_line(line: str) -> str:
@@ -40,7 +49,8 @@ def find_secrets(text: str) -> list[str]:
 
 def get_tracked_files() -> list[str]:
     """
-    Returns a list of files tracked by git in the current repository.
+    Returns a list of files tracked by git in the current repository,
+    excluding common directories and the scanner itself.
     """
     try:
         result = subprocess.run(
@@ -49,7 +59,22 @@ def get_tracked_files() -> list[str]:
             text=True,
             check=True
         )
-        return result.stdout.splitlines()
+        all_files = result.stdout.splitlines()
+        
+        # Filter out unwanted paths
+        excluded_prefixes = (
+            'node_modules/',
+            'tests/',
+            'scripts/security/secret_scanner.py',
+            'conductor/tracks/secret_redaction_20260110/plan.md'
+        )
+        
+        filtered_files = [
+            f for f in all_files 
+            if not f.startswith(excluded_prefixes)
+        ]
+        
+        return filtered_files
     except subprocess.CalledProcessError:
         return []
 

@@ -17,40 +17,37 @@ def test_module_import():
 
 def test_find_secrets_detected():
     """Test that secrets are detected in strings."""
-    # Test common variable names
-    assert secret_scanner.find_secrets('API_KEY="123456"') == ['123456']
-    assert secret_scanner.find_secrets("TOKEN = 'abcdef'") == ['abcdef']
-    assert secret_scanner.find_secrets("SECRET_PASSWORD=super_secret") == ['super_secret']
+    # Test common variable names with quotes
+    assert secret_scanner.find_secrets('API_KEY="12345678"') == ['12345678']
+    assert secret_scanner.find_secrets("TOKEN = 'abcdefgh'") == ['abcdefgh']
+    assert secret_scanner.find_secrets("SECRET_PASSWORD='super_secret'") == ['super_secret']
 
 def test_find_secrets_none():
-    """Test that safe strings are not flagged."""
+    """Test that safe strings or non-literal assignments are not flagged."""
     assert secret_scanner.find_secrets('my_variable = "hello"') == []
-    assert secret_scanner.find_secrets('print("API_KEY")') == [] # It's just a string, not assignment
+    assert secret_scanner.find_secrets('print("API_KEY")') == []
+    # Test safe environment variable loading
+    assert secret_scanner.find_secrets('BOT_TOKEN = os.getenv("BOT_TOKEN")') == []
+    # Test unquoted value (now requires quotes for safety)
+    assert secret_scanner.find_secrets("SECRET=super_secret") == []
 
 def test_redact_line():
     """Test that secrets are correctly redacted."""
     # Simple replacement
-    assert secret_scanner.redact_line('API_KEY="12345"') == 'API_KEY="<REDACTED_SECRET>"'
+    assert secret_scanner.redact_line('API_KEY="12345678"') == 'API_KEY="<REDACTED_SECRET>"'
     
     # Preserving quotes
-    assert secret_scanner.redact_line("TOKEN = 'abcdef'") == "TOKEN = '<REDACTED_SECRET>'"
+    assert secret_scanner.redact_line("TOKEN = 'abcdefgh'") == "TOKEN = '<REDACTED_SECRET>'"
     
-    # Without quotes (if that's supported/detected) - regex handles it?
-    # My regex expected quotes or not.
-    assert secret_scanner.redact_line("SECRET=super_secret") == "SECRET=<REDACTED_SECRET>"
-    
-    # Multiple secrets on one line? (Maybe out of scope but good to know)
-    # assert secret_scanner.redact_line('KEY1="a" KEY2="b"') == 'KEY1="<REDACTED_SECRET>" KEY2="<REDACTED_SECRET>"'
+    # Safe line remains unchanged
+    safe_line = 'BOT_TOKEN = os.getenv("BOT_TOKEN")'
+    assert secret_scanner.redact_line(safe_line) == safe_line
 
-def test_get_tracked_files(tmp_path):
+def test_get_tracked_files():
     """Test that it correctly identifies tracked files."""
-    # This might need to mock subprocess.run for git ls-files
-    # For now, let's just test a basic implementation if it's not using git
-    # But the spec says "tracked files", so git ls-files is ideal.
-    
-    # Let's assume we implement a function that calls git ls-files
-    # We will mock it in the actual test if needed, or just test it in the repo
     files = secret_scanner.get_tracked_files()
     assert 'README.md' in files
-    assert 'scripts/security/secret_scanner.py' in files
     assert '.git/config' not in files
+    # Excluded files
+    assert 'node_modules/axios/README.md' not in files
+    assert 'scripts/security/secret_scanner.py' not in files

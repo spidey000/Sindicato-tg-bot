@@ -500,7 +500,7 @@ def is_authorized(user_id: int, command: str = None) -> bool:
 # .env
 AUTHORIZED_USER_IDS=123456789,987654321,456789123
 ADMIN_USER_IDS=123456789
-BOT_TOKEN=your_telegram_bot_token
+BOT_TOKEN=<REDACTED_SECRET>
 NOTION_API_KEY=your_notion_key
 GOOGLE_DRIVE_CREDENTIALS=path/to/credentials.json
 ```

@@ -22,7 +22,7 @@ This guide explains how to deploy the Marxnager bot on a VPS using Docker and Po
     - Click "Add environment variable" for each of the following (or use the "Advanced mode" to paste a list):
     
     ```text
-    BOT_TOKEN=your_telegram_bot_token
+    BOT_TOKEN=<REDACTED_SECRET>
     AUTHORIZED_USER_IDS=comma_separated_ids
     OPENROUTER_API_KEY=your_key
     PERPLEXITY_API_KEY_PRIMARY=your_key

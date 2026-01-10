@@ -57,12 +57,12 @@ Edita `.env` con tus valores reales:
 
 ```ini
 # Telegram
-BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+BOT_TOKEN=<REDACTED_SECRET>
 AUTHORIZED_USER_IDS=123456789,987654321  # IDs separados por comas
 LOG_LEVEL=INFO
 
 # OpenRouter (IA - Generación)
-OPENROUTER_API_KEY=sk-or-v1-...
+OPENROUTER_API_KEY=<REDACTED_SECRET>
 MODEL_PRIMARY=deepseek/deepseek-r1-0528:free
 MODEL_FALLBACK=mistralai/devstral-2512:free
 
