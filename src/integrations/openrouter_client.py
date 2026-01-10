@@ -45,18 +45,64 @@ class OpenRouterClient:
         target_model = model or primary
         
         try:
-            return self._make_request(messages, target_model, response_format)
+            content = self._make_request(messages, target_model, response_format)
+            
+            # Check if JSON repair is needed
+            if response_format and response_format.get("type") == "json_object":
+                try:
+                    json.loads(content)
+                except json.JSONDecodeError:
+                    logger.warning(f"Invalid JSON from {target_model}. Attempting repair with {REPAIR_MODEL}.")
+                    content = self._repair_json(content, response_format)
+            
+            return content
+            
         except Exception as e:
             logger.error(f"Error with primary model {target_model}: {e}")
             if target_model != fallback:
                 logger.info(f"Retrying with fallback model: {fallback}")
                 try:
-                    return self._make_request(messages, fallback, response_format)
+                    content = self._make_request(messages, fallback, response_format)
+                    
+                    # Check if JSON repair is needed for fallback
+                    if response_format and response_format.get("type") == "json_object":
+                        try:
+                            json.loads(content)
+                        except json.JSONDecodeError:
+                            logger.warning(f"Invalid JSON from fallback {fallback}. Attempting repair with {REPAIR_MODEL}.")
+                            content = self._repair_json(content, response_format)
+                    
+                    return content
                 except Exception as e2:
                     logger.error(f"Error with fallback model {fallback}: {e2}")
                     return f"Error generating text: {e2}"
             else:
                 return f"Error generating text: {e}"
+
+    def _repair_json(self, invalid_content: str, original_format: dict) -> str:
+        """
+        Attempts to repair malformed JSON using the REPAIR_MODEL.
+        """
+        schema_hint = original_format.get("schema", "JSON object")
+        repair_prompt = (
+            f"Convert this text into valid JSON matching this schema: {schema_hint}\n\n"
+            f"{invalid_content}"
+        )
+        
+        repair_messages = [
+            {"role": "system", "content": "You are a JSON repair assistant. Output ONLY valid JSON."},
+            {"role": "user", "content": repair_prompt}
+        ]
+        
+        # Use qwen with structured_outputs parameter
+        repair_format = {"type": "json_object"}
+        
+        try:
+            repaired_content = self._make_request(repair_messages, REPAIR_MODEL, repair_format)
+            return repaired_content
+        except Exception as e:
+            logger.error(f"JSON repair failed: {e}")
+            return invalid_content
 
     def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
         payload = {

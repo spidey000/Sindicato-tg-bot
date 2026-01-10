@@ -43,3 +43,50 @@ def test_refinement_uses_configured_primary(client):
         
         # Should call _make_request with MODEL_PRIMARY (deepseek)
         mock_request.assert_called_with([], config.MODEL_PRIMARY, None)
+
+def test_json_repair_triggered_on_invalid_json(client):
+    """Test that JSON repair is triggered when response is not valid JSON."""
+    invalid_json = "This is not JSON { incomplete: "
+    valid_json = '{"fixed": "data"}'
+    
+    with patch.object(client, '_make_request') as mock_request:
+        # First call returns invalid JSON, second (repair) returns valid JSON
+        mock_request.side_effect = [invalid_json, valid_json]
+        
+        # We need a schema or at least a hint for the repair
+        response_format = {"type": "json_object", "schema": {"type": "object"}}
+        
+        response = client.completion(messages=[], response_format=response_format)
+        
+        # Verify repair call
+        assert mock_request.call_count == 2
+        calls = mock_request.call_args_list
+        
+        # Second call should be the repair call
+        repair_messages = calls[1].args[0]
+        repair_model = calls[1].args[1]
+        repair_format = calls[1].args[2]
+        
+        assert repair_model == config.REPAIR_MODEL
+        assert repair_format == {"type": "json_object"} # Spec says enable structured_outputs
+        
+        # Repair prompt is in the second message (index 1)
+        assert "Convert this text into valid JSON" in repair_messages[1]["content"]
+        assert invalid_json in repair_messages[1]["content"]
+        assert response == valid_json
+
+def test_json_repair_failure_falls_back(client):
+    """Test that if repair also fails, it returns the error or original text."""
+    invalid_json = "Invalid"
+    still_invalid = "Still Invalid"
+    
+    with patch.object(client, '_make_request') as mock_request:
+        mock_request.side_effect = [invalid_json, still_invalid]
+        
+        response = client.completion(messages=[], response_format={"type": "json_object"})
+        
+        # Should attempt repair and then return the result (which might be the error string or original)
+        # The current implementation of completion handles exceptions by returning error strings.
+        # If repair fails to produce valid JSON, we might just return it or let it fail.
+        assert mock_request.call_count == 2
+        assert response == still_invalid
