@@ -16,10 +16,14 @@
 ## Error Handling
 - **Sober and Brief:** Error messages are concise and formal.
 - **Reference-Based:** Failures provide a standard notification (e.g., "Error en la operación. Código: N-503") rather than technical stack traces or overly apologetic conversational filler, maintaining the tool's professional facade.
+- **Atomic Rollback:** If a process fails mid-way, the system automatically deletes any orphans (Notion pages, Drive folders) and reports the specific rollback actions taken to the user.
 
 ## User Feedback & Progress Updates
-- **Dynamic Checklists:** During long-running operations (like document creation), the bot uses a single message with dynamic formatting (strikethrough for pending, bold for completed) to show progress.
-- **Failure Visualization:** If a multi-step process fails, the specific failed step is clearly marked with a `❌` emoji to provide immediate context without technical clutter.
+- **Dynamic Checklists:** During long-running operations, the bot uses a single message with dynamic formatting and icons:
+    - `⬜ Step Name`: Pending/Future.
+    - `⏳ *Step Name*`: In progress.
+    - `✅ *Step Name* (elapsed time)`: Successfully completed with the execution time appended.
+- **Failure Visualization:** If a multi-step process fails, the specific failed step is marked with `❌` and a detailed rollback report is provided.
 - **Thorough Verification Logging:** The grounding process with Perplexity is explicitly logged in the system with success/failure status codes and response metadata (e.g., character length) for auditing.
 
 ## AI Content Guidelines
