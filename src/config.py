@@ -31,6 +31,11 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 MODEL_PRIMARY = os.getenv("MODEL_PRIMARY", "deepseek/deepseek-r1:free")
 MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "moonshotai/moonlight-2:free")
 
+# Drafting & Repair Models
+PRIMARY_DRAFT_MODEL = "openai/gpt-oss-120b:free"
+FALLBACK_DRAFT_MODEL = "google/gemma-3-27b-it:free"
+REPAIR_MODEL = "qwen/qwen3-4b:free"
+
 # Perplexity Configuration
 PERPLEXITY_API_KEY_PRIMARY = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
 PERPLEXITY_API_KEY_FALLBACK = os.getenv("PERPLEXITY_API_KEY_FALLBACK")
