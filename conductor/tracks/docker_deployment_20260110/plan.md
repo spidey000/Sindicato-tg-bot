@@ -22,7 +22,7 @@ Focus on creating the container image definition and ensuring the application is
 ## Phase 2: Orchestration & Portainer Setup
 Create the orchestration files and documentation needed for Portainer.
 
-- [ ] **Task 1: Create `docker-compose.yml`**
+- [x] **Task 1: Create `docker-compose.yml`** e354cad
     - [ ] Define the `bot` service.
     - [ ] Configure environment variable mapping.
     - [ ] Set restart policy to `unless-stopped`.
