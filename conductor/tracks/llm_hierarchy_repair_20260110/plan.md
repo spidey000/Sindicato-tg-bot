@@ -8,7 +8,7 @@ Focus on updating `config.py` and `OpenRouterClient` to handle the new model set
 - [x] **Task 1: Update Configuration and Constants** <!-- 838b319 -->
     - [ ] Add `PRIMARY_DRAFT_MODEL` (`openai/gpt-oss-120b:free`) and `FALLBACK_DRAFT_MODEL` (`google/gemma-3-27b-it:free`) to `src/config.py`.
     - [ ] Add `REPAIR_MODEL` (`qwen/qwen3-4b:free`) to `src/config.py`.
-- [ ] **Task 2: Enhance `OpenRouterClient` Interface**
+- [x] **Task 2: Enhance `OpenRouterClient` Interface** <!-- 6efda95 -->
     - [ ] Update `OpenRouterClient.generate_completion` (or similar method) to accept a `task_type` parameter (e.g., `DRAFT`, `REFINEMENT`, `REPAIR`).
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1: Infrastructure & Configuration' (Protocol in workflow.md)**
 
