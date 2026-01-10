@@ -1,7 +1,15 @@
 import requests
 import json
 import logging
-from src.config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, MODEL_PRIMARY, MODEL_FALLBACK
+from src.config import (
+    OPENROUTER_API_KEY, 
+    OPENROUTER_BASE_URL, 
+    MODEL_PRIMARY, 
+    MODEL_FALLBACK,
+    PRIMARY_DRAFT_MODEL,
+    FALLBACK_DRAFT_MODEL,
+    REPAIR_MODEL
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,18 +34,26 @@ class OpenRouterClient:
             logger.warning("OPENROUTER_API_KEY not set. Returning simulation.")
             return "[SIMULATION] OpenRouter API Key missing. This is a simulated response."
 
-        target_model = model or MODEL_PRIMARY
+        # Determine Primary and Fallback models based on task type
+        primary = MODEL_PRIMARY
+        fallback = MODEL_FALLBACK
+
+        if task_type == "DRAFT":
+            primary = PRIMARY_DRAFT_MODEL
+            fallback = FALLBACK_DRAFT_MODEL
+
+        target_model = model or primary
         
         try:
             return self._make_request(messages, target_model, response_format)
         except Exception as e:
             logger.error(f"Error with primary model {target_model}: {e}")
-            if target_model != MODEL_FALLBACK:
-                logger.info(f"Retrying with fallback model: {MODEL_FALLBACK}")
+            if target_model != fallback:
+                logger.info(f"Retrying with fallback model: {fallback}")
                 try:
-                    return self._make_request(messages, MODEL_FALLBACK, response_format)
+                    return self._make_request(messages, fallback, response_format)
                 except Exception as e2:
-                    logger.error(f"Error with fallback model {MODEL_FALLBACK}: {e2}")
+                    logger.error(f"Error with fallback model {fallback}: {e2}")
                     return f"Error generating text: {e2}"
             else:
                 return f"Error generating text: {e}"
