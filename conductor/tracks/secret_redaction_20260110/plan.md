@@ -24,8 +24,8 @@
     - [x] Subtask: Implement console reporting of changed files and found secrets.
 - [x] Task: Conductor - User Manual Verification 'File Processing & CLI' (Protocol in workflow.md)
 
-## Phase 3: Execution & Cleanup
+## Phase 3: Execution & Cleanup [checkpoint: 2403f60]
 - [x] Task: Execute Secret Scan
-    - [ ] Subtask: Run the scanner against the repository root.
-    - [ ] Subtask: Review the `README.md` and other files for unintended redactions or missed secrets.
-- [ ] Task: Conductor - User Manual Verification 'Execution & Cleanup' (Protocol in workflow.md)
+    - [x] Subtask: Run the scanner against the repository root.
+    - [x] Subtask: Review the `README.md` and other files for unintended redactions or missed secrets.
+- [x] Task: Conductor - User Manual Verification 'Execution & Cleanup' (Protocol in workflow.md)
