@@ -14,10 +14,34 @@ El bot permite a los delegados sindicales autorizados:
 
 ### ✨ Características Clave (Actualizado)
 *   **🛡️ Creación Atómica y Rollback**: Garantía de integridad "todo o nada". Si falla la creación de cualquier activo (Notion, Drive, Doc) durante el proceso, el sistema revierte automáticamente todos los cambios parciales y notifica al usuario, evitando archivos huérfanos.
+*   **🔒 Seguridad y Privacidad**: Sistema integrado de **redacción de secretos** que evita que claves API o datos sensibles queden expuestos en logs o salidas de consola.
+*   **🧠 Arquitectura Resiliente**:
+    *   **Jerarquía de LLMs**: Sistema inteligente que alterna entre modelos principales (DeepSeek) y de respaldo (Mistral) ante fallos de API.
+    *   **Reparación JSON**: Mecanismo de auto-corrección que arregla respuestas malformadas de la IA para asegurar que el sistema nunca se detenga por errores de sintaxis.
 *   **⚖️ Verificación Legal (Dos Etapas)**: Cada borrador generado por la IA pasa por una fase de "Grounding" con **Perplexity Sonar**, que verifica la validez jurídica y cita la normativa vigente antes de entregarte el documento.
 *   **🔄 Seguimiento en Tiempo Real**: Lista de verificación dinámica en Telegram que se actualiza en vivo (tachado/negrita) a medida que el bot completa cada paso (Drafting, Notion, Drive, Docs).
-*   **🆔 IDs Secuenciales Inteligentes**: Detección automática del último ID (ej. `D-2026-005`) y asignación del siguiente.
-*   **📂 Nombres Descriptivos**: Organización automática en Notion y Drive con formato `ID - Resumen`.
+
+---
+
+## 🔄 Flujo de Ejecución (Ejemplo: `/denuncia`)
+
+Cuando un delegado ejecuta `/denuncia Falta de EPIs en el almacén`, el bot activa un proceso de 9 pasos:
+
+1.  **Inicialización**: Genera un ID único secuencial (ej. `D-2026-005`) consultando la base de datos.
+2.  **Drafting (Borrador)**: El Agente (IA) analiza los hechos y redacta un borrador estructurado, asignando un título resumen.
+3.  **Notion Entry**: Crea el expediente en la base de datos de Notion con estado "Borrador" y fecha de creación.
+4.  **Drive Structure**: Crea una carpeta en Google Drive (`D-2026-005 - Falta de EPIs`) con subcarpetas para "Pruebas" y "Respuestas".
+5.  **Perplexity Check**: Un segundo agente legal verifica el borrador contra la normativa vigente y jurisprudencia usando Perplexity.
+6.  **Refinement**: La IA refina el texto incorporando las correcciones y citas legales sugeridas.
+7.  **Docs Creation**: Genera un documento de Google Docs con el texto final dentro de la carpeta creada.
+8.  **Finalización**: Actualiza Notion vinculando la carpeta de Drive y el documento creado.
+9.  **Entrega**: Envía al usuario una tarjeta resumen con enlaces directos y un botón para "Continuar en Privado" (donde se pueden subir fotos o audios al caso).
+
+*Nota: Si cualquier paso falla, el sistema "Rollback" elimina lo creado en los pasos anteriores para mantener la limpieza.*
+
+---
+
+## 🛠️ Requisitos Previos
 
 ---
 
