@@ -1,0 +1,8 @@
+{
+  "track_id": "secret_redaction_20260110",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-01-10T12:00:00Z",
+  "updated_at": "2026-01-10T12:00:00Z",
+  "description": "remove secrets from readme. check any secrets commited to github."
+}

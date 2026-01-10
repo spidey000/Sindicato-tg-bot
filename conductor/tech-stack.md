@@ -28,4 +28,6 @@
 - **Environment:** Termux (Android) for local development and execution.
 - **Deployment:** Docker & Docker Compose for containerized VPS execution, managed via Portainer.
 - **Configuration:** `python-dotenv` for managing environment variables and API keys.
-- **Security:** Hardcoded/Environment whitelist for user authorization.
+- **Security:** 
+    - Hardcoded/Environment whitelist for user authorization.
+    - Custom regex-based secret scanning and redaction tool for repository safety.

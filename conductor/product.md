@@ -25,6 +25,7 @@ The primary users are union delegates and representatives who need to efficientl
 
 ## Technical & Non-functional Requirements
 - **Security:** Strict access control via a hardcoded or environment-based whitelist of authorized Telegram IDs.
+- **Secret Redaction:** Integrated scanning and redaction system to prevent exposure of API keys and sensitive tokens in documentation and logs.
 - **Reliability:** Atomic "all-or-nothing" transaction logic for artifact creation; failures trigger an automatic rollback (hard delete) of all partial results (Notion, Drive, Docs).
 - **Modular & Extensible Architecture:** A clean separation of specialized AI agents and integration clients to facilitate future expansion (e.g., LexNet integration).
 - **Observability:** Centralized logging of all bot actions to support the auditing and maintenance of the system.
