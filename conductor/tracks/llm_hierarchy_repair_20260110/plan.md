@@ -15,10 +15,8 @@ Focus on updating `config.py` and `OpenRouterClient` to handle the new model set
 ## Phase 2: Implementation of Model Hierarchy (Drafting)
 Implement the sequential fallback for the first draft generation.
 
-- [ ] **Task 1: Write Tests for Drafting Hierarchy**
-    - [ ] Create `tests/test_llm_hierarchy.py`.
-    - [ ] Test that `DRAFT` task type correctly attempts Primary then Fallback on failure.
-- [ ] **Task 2: Implement Drafting Fallback Logic**
+- [x] **Task 1: Write Tests for Drafting Hierarchy** <!-- 084e601 -->
+- [x] **Task 2: Implement Drafting Fallback Logic** <!-- 084e601 -->
     - [ ] Modify `OpenRouterClient` to handle the try-except block for Primary -> Fallback models when `task_type=DRAFT`.
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2: Implementation of Model Hierarchy (Drafting)' (Protocol in workflow.md)**
 
