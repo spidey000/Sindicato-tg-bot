@@ -4,7 +4,7 @@
 - [x] Task: Initialize scanning module and test suite c418574
     - [ ] Subtask: Create `scripts/security/__init__.py` and `scripts/security/secret_scanner.py`.
     - [ ] Subtask: Create `tests/test_secret_scanner.py`.
-- [ ] Task: Implement Secret Detection (TDD)
+- [x] Task: Implement Secret Detection (TDD) 10d15b3
     - [ ] Subtask: Write failing test for detecting dummy secrets (e.g., `API_KEY="12345"`).
     - [ ] Subtask: Implement regex-based detection in `secret_scanner.py`.
     - [ ] Subtask: Verify tests pass.
