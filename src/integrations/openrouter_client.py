@@ -16,10 +16,11 @@ class OpenRouterClient:
             "X-Title": "Marxnager"
         }
 
-    def completion(self, messages: list, model: str = None, response_format: dict = None) -> str:
+    def completion(self, messages: list, model: str = None, response_format: dict = None, task_type: str = None) -> str:
         """
         Generates a completion using OpenRouter.
         Tries the primary model first, then falls back to the secondary model.
+        :param task_type: Optional task type ('DRAFT', 'REFINEMENT', 'REPAIR') to determine model hierarchy.
         """
         if not self.api_key:
             logger.warning("OPENROUTER_API_KEY not set. Returning simulation.")
