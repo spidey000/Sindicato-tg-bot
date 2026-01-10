@@ -19,7 +19,7 @@
     - [ ] Subtask: Write failing test for scanning a directory, ignoring `.git` and binary files.
     - [ ] Subtask: Implement file walker in `secret_scanner.py`.
     - [ ] Subtask: Verify tests pass.
-- [ ] Task: Implement CLI entry point and Reporting
+- [x] Task: Implement CLI entry point and Reporting f649ab3
     - [ ] Subtask: Add `main` block to `scripts/security/secret_scanner.py` to accept arguments.
     - [ ] Subtask: Implement console reporting of changed files and found secrets.
 - [ ] Task: Conductor - User Manual Verification 'File Processing & CLI' (Protocol in workflow.md)
