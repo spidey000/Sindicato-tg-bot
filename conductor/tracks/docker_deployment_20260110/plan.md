@@ -19,7 +19,7 @@ Focus on creating the container image definition and ensuring the application is
     - [ ] **Implement/Refine:** Ensure `src/config.py` handles missing `.env` gracefully when variables are provided via Docker.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Dockerization' (Protocol in workflow.md)
 
-## Phase 2: Orchestration & Portainer Setup
+## Phase 2: Orchestration & Portainer Setup [checkpoint: 8b204bf]
 Create the orchestration files and documentation needed for Portainer.
 
 - [x] **Task 1: Create `docker-compose.yml`** e354cad
