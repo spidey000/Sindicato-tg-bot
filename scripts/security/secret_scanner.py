@@ -1,6 +1,7 @@
 import re
 import subprocess
 import os
+import sys
 
 # Common patterns for secrets
 # Captures: 
@@ -51,3 +52,65 @@ def get_tracked_files() -> list[str]:
         return result.stdout.splitlines()
     except subprocess.CalledProcessError:
         return []
+
+def process_file(file_path: str, dry_run: bool = True) -> int:
+    """
+    Processes a single file, redacting any secrets found.
+    Returns the number of secrets redacted.
+    """
+    if not os.path.exists(file_path):
+        return 0
+        
+    # Skip binary files
+    try:
+        with open(file_path, 'tr') as f:
+            f.read(1024)
+    except (UnicodeDecodeError, PermissionError):
+        return 0
+
+    secrets_count = 0
+    new_lines = []
+    
+    with open(file_path, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            redacted = redact_line(line)
+            if redacted != line:
+                secrets_count += 1
+                print(f"  [FOUND] {file_path}:{line_num}")
+                new_lines.append(redacted)
+            else:
+                new_lines.append(line)
+                
+    if secrets_count > 0 and not dry_run:
+        with open(file_path, 'w') as f:
+            f.writelines(new_lines)
+        print(f"  [REDACTED] {file_path}: {secrets_count} occurrences")
+        
+    return secrets_count
+
+def run_scan(dry_run: bool = True):
+    """
+    Runs a full scan of the repository.
+    """
+    print(f"Starting secret scan (dry_run={dry_run})...")
+    files = get_tracked_files()
+    total_secrets = 0
+    modified_files = 0
+    
+    for file_path in files:
+        count = process_file(file_path, dry_run=dry_run)
+        if count > 0:
+            total_secrets += count
+            modified_files += 1
+            
+    print("\nScan complete.")
+    print(f"Files scanned: {len(files)}")
+    print(f"Files with secrets: {modified_files}")
+    print(f"Total secrets found: {total_secrets}")
+    
+    if dry_run and total_secrets > 0:
+        print("\nRun with --apply to redact detected secrets.")
+
+if __name__ == "__main__":
+    apply_changes = "--apply" in sys.argv
+    run_scan(dry_run=not apply_changes)
