@@ -2,7 +2,7 @@
 
 This plan outlines the steps to containerize the Marxnager bot and provide the necessary orchestration files for deployment via Portainer.
 
-## Phase 1: Dockerization
+## Phase 1: Dockerization [checkpoint: 3094337]
 Focus on creating the container image definition and ensuring the application is ready for containerized execution.
 
 - [x] **Task 1: Create `.dockerignore`** c6a96c1
