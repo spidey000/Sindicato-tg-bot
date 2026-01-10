@@ -28,7 +28,7 @@ Implement the global logic that catches invalid JSON and sends it to Qwen.
 - [x] **Task 3: Integrate Repair into Main Execution Flow** <!-- 868d413 -->
 - [ ] **Task: Conductor - User Manual Verification 'Phase 3: JSON Repair Mechanism' (Protocol in workflow.md)**
 
-## Phase 4: Integration and Refinement Stage
+## Phase 4: Integration and Refinement Stage [checkpoint: 251d961]
 Ensure the existing refinement flow uses the new repair logic but keeps its current models.
 
 - [x] **Task 1: Verify Refinement Logic** <!-- e66a77d -->
