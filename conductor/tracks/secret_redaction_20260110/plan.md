@@ -15,7 +15,7 @@
 - [x] Task: Conductor - User Manual Verification 'Core Detection & Redaction Logic' (Protocol in workflow.md)
 
 ## Phase 2: File Processing & CLI
-- [ ] Task: Implement File Walking & filtering (TDD)
+- [x] Task: Implement File Walking & filtering (TDD) 1859f14
     - [ ] Subtask: Write failing test for scanning a directory, ignoring `.git` and binary files.
     - [ ] Subtask: Implement file walker in `secret_scanner.py`.
     - [ ] Subtask: Verify tests pass.
