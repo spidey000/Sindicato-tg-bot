@@ -1,10 +1,10 @@
 # Implementation Plan - Track: Progress Message & Timer Enhancement
 
 ## Phase 1: Research & Setup
-- [x] Task: Analyze current progress message logic in `src/handlers.py` and `src/utils.py`.
-- [x] Task: Identify where `Perplexity Verification` is called and how to hook into the start/end of each step for timing.
-- [~] Task: Create a new helper class `ProgressTracker` in `src/utils.py` to manage state, timers, and formatting.
-- [x] Task: Conductor - User Manual Verification 'Research & Setup' (Protocol in workflow.md)
+- [x] Task: Analyze current progress message logic in `src/handlers.py` and `src/utils.py`. b4ef054
+- [x] Task: Identify where `Perplexity Verification` is called and how to hook into the start/end of each step for timing. b4ef054
+- [x] Task: Create a new helper class `ProgressTracker` in `src/utils.py` to manage state, timers, and formatting. b4ef054
+- [x] Task: Conductor - User Manual Verification 'Research & Setup' (Protocol in workflow.md) b4ef054
 
 ## Phase 2: Implementation - Core Logic
 - [ ] Task: Implement `ProgressTracker` class with methods: `start_step`, `complete_step`, `get_message_text`.
