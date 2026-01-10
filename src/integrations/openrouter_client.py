@@ -111,8 +111,8 @@ class OpenRouterClient:
             "messages": messages
         }
         
-        # if response_format:
-        #     payload["response_format"] = response_format
+        if response_format:
+            payload["response_format"] = response_format
         
         max_retries = 3
         retry_delay = 1
