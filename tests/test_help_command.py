@@ -13,6 +13,9 @@ def test_help_command_exists():
         content = f.read()
     assert "async def help_command" in content
     assert "CENTRO DE AYUDA MARXNAGER" in content
+    assert "MODO PRIVADO" in content
+    assert "QUÉ PUEDO HACER" in content
+    assert "QUÉ NO PUEDO HACER" in content
 
     with open("src/main.py", "r") as f:
         content = f.read()
