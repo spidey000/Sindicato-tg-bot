@@ -7,7 +7,7 @@ Focus on creating the container image definition and ensuring the application is
 
 - [x] **Task 1: Create `.dockerignore`** c6a96c1
     - [ ] Exclude `node_modules`, `.env`, `__pycache__`, `.git`, and other unnecessary files.
-- [ ] **Task 2: Create `Dockerfile`**
+- [x] **Task 2: Create `Dockerfile`** 53558de
     - [ ] Use `python:3.11-slim` as the base image.
     - [ ] Install system-level dependencies if required.
     - [ ] Set up the working directory and copy `requirements.txt`.
