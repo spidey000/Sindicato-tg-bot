@@ -28,13 +28,22 @@ async def run_e2e():
     
     # Capture replies
     async def log_reply(text, **kwargs):
-        print(f"🤖 Bot Reply: {text}")
+        print(f"🤖 Bot Reply:\n{text}\n")
+        msg = MagicMock()
+        msg.message_id = 12345
+        return msg
+    
     update.message.reply_text = AsyncMock(side_effect=log_reply)
     
     # Mock Context
     context = MagicMock()
     context.args = ["Test", "E2E", "Summary", "Generation", "Check"]
     context.bot.username = "test_bot"
+    
+    async def log_edit(chat_id, message_id, text, **kwargs):
+        print(f"🔄 Bot Progress Update ({message_id}):\n{text}\n")
+        
+    context.bot.edit_message_text = AsyncMock(side_effect=log_edit)
     
     print(f"User ID: {user_id}")
     print(f"Context: {' '.join(context.args)}")

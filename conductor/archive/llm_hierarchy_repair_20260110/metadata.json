@@ -1,0 +1,8 @@
+{
+  "track_id": "llm_hierarchy_repair_20260110",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-01-10T12:00:00Z",
+  "updated_at": "2026-01-10T12:00:00Z",
+  "description": "Multi-stage LLM strategy with low-latency models for drafts and a Qwen-based JSON repair mechanism."
+}
