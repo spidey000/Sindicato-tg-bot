@@ -12,7 +12,7 @@ Focus on updating `config.py` and `OpenRouterClient` to handle the new model set
     - [ ] Update `OpenRouterClient.generate_completion` (or similar method) to accept a `task_type` parameter (e.g., `DRAFT`, `REFINEMENT`, `REPAIR`).
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1: Infrastructure & Configuration' (Protocol in workflow.md)**
 
-## Phase 2: Implementation of Model Hierarchy (Drafting)
+## Phase 2: Implementation of Model Hierarchy (Drafting) [checkpoint: d2fc406]
 Implement the sequential fallback for the first draft generation.
 
 - [x] **Task 1: Write Tests for Drafting Hierarchy** <!-- 084e601 -->
