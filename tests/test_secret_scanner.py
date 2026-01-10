@@ -17,10 +17,10 @@ def test_module_import():
 
 def test_find_secrets_detected():
     """Test that secrets are detected in strings."""
-    # Test common variable names with quotes
-    assert secret_scanner.find_secrets('API_KEY="12345678"') == ['12345678']
-    assert secret_scanner.find_secrets("TOKEN = 'abcdefgh'") == ['abcdefgh']
-    assert secret_scanner.find_secrets("SECRET_PASSWORD='super_secret'") == ['super_secret']
+    # Test common variable names with quotes (using 16+ chars as per final regex)
+    assert secret_scanner.find_secrets('API_KEY="1234567890abcdef"') == ['1234567890abcdef']
+    assert secret_scanner.find_secrets("TOKEN = 'abcdefghij123456'") == ['abcdefghij123456']
+    assert secret_scanner.find_secrets("SECRET_PASSWORD='super_secret_password_123'") == ['super_secret_password_123']
 
 def test_find_secrets_none():
     """Test that safe strings or non-literal assignments are not flagged."""
@@ -28,16 +28,16 @@ def test_find_secrets_none():
     assert secret_scanner.find_secrets('print("API_KEY")') == []
     # Test safe environment variable loading
     assert secret_scanner.find_secrets('BOT_TOKEN = os.getenv("BOT_TOKEN")') == []
-    # Test unquoted value (now requires quotes for safety)
-    assert secret_scanner.find_secrets("SECRET=super_secret") == []
+    # Test short values (below 16 chars)
+    assert secret_scanner.find_secrets('API_KEY="short"') == []
 
 def test_redact_line():
     """Test that secrets are correctly redacted."""
     # Simple replacement
-    assert secret_scanner.redact_line('API_KEY="12345678"') == 'API_KEY="<REDACTED_SECRET>"'
+    assert secret_scanner.redact_line('API_KEY="1234567890abcdef"') == 'API_KEY="<REDACTED_SECRET>"'
     
     # Preserving quotes
-    assert secret_scanner.redact_line("TOKEN = 'abcdefgh'") == "TOKEN = '<REDACTED_SECRET>'"
+    assert secret_scanner.redact_line("TOKEN = 'abcdefghij123456'") == "TOKEN = '<REDACTED_SECRET>'"
     
     # Safe line remains unchanged
     safe_line = 'BOT_TOKEN = os.getenv("BOT_TOKEN")'
@@ -50,4 +50,5 @@ def test_get_tracked_files():
     assert '.git/config' not in files
     # Excluded files
     assert 'node_modules/axios/README.md' not in files
+    # Scripts/security/secret_scanner.py is excluded in get_tracked_files
     assert 'scripts/security/secret_scanner.py' not in files
