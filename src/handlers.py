@@ -278,11 +278,12 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
         # Mark current pending step as failed
-        for item in steps_status:
-            if item[1] == "pending":
-                item[1] = "failed"
+        tracker.fail_step(tracker.steps[0]) # Fallback if no step in progress
+        for s in tracker.steps:
+            if tracker.status[s] == "in_progress" or tracker.status[s] == "pending":
+                tracker.fail_step(s)
                 break
-        await update_progress_message(context, chat_id, message_id, steps_status)
+        await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
         
         # ROLLBACK
         rollback_report = await rollback.execute_rollback()
@@ -616,11 +617,11 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     except Exception as e:
          # Mark current pending step as failed
-        for item in steps_status:
-            if item[1] == "pending":
-                item[1] = "failed"
+        for s in tracker.steps:
+            if tracker.status[s] == "in_progress" or tracker.status[s] == "pending":
+                tracker.fail_step(s)
                 break
-        await update_progress_message(context, chat_id, message_id, steps_status)
+        await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
         
         # ROLLBACK
         rollback_report = await rollback.execute_rollback()
@@ -801,11 +802,11 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response, parse_mode='Markdown')
 
     except Exception as e:
-        for item in steps_status:
-            if item[1] == "pending":
-                item[1] = "failed"
+        for s in tracker.steps:
+            if tracker.status[s] == "in_progress" or tracker.status[s] == "pending":
+                tracker.fail_step(s)
                 break
-        await update_progress_message(context, chat_id, message_id, steps_status)
+        await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
         
         # ROLLBACK
         rollback_report = await rollback.execute_rollback()
