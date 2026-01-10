@@ -1,7 +1,45 @@
+import time
 from datetime import datetime
 import random
 import os
 from telegram.error import BadRequest
+
+class ProgressTracker:
+    """
+    Manages the state and timing of multiple execution steps.
+    """
+    def __init__(self, steps: list):
+        self.steps = steps
+        self.status = {step: "pending" for step in steps}
+        self.start_times = {}
+        self.elapsed_times = {}
+
+    def start_step(self, step_name: str):
+        if step_name in self.status:
+            self.status[step_name] = "in_progress"
+            self.start_times[step_name] = time.time()
+
+    def complete_step(self, step_name: str):
+        if step_name in self.status:
+            self.status[step_name] = "completed"
+            if step_name in self.start_times:
+                elapsed = time.time() - self.start_times[step_name]
+                self.elapsed_times[step_name] = f"{elapsed:.1f}s"
+
+    def fail_step(self, step_name: str):
+        if step_name in self.status:
+            self.status[step_name] = "failed"
+
+    def get_steps_status(self) -> list:
+        """
+        Returns a list of [step_name, status, elapsed] for all steps.
+        """
+        result = []
+        for step in self.steps:
+            status = self.status[step]
+            elapsed = self.elapsed_times.get(step)
+            result.append([step, status, elapsed])
+        return result
 
 def generate_case_id(type_prefix="D", last_id=None):
     """
@@ -65,8 +103,8 @@ async def send_progress_message(update, steps):
     Returns:
         int: The message_id of the sent message.
     """
-    # Format steps as strikethrough italic
-    formatted_steps = "\n".join([f"~_{step}_~" for step in steps])
+    # Format steps as pending with white square
+    formatted_steps = "\n".join([f"⬜ {step}" for step in steps])
     message_text = f"🔄 *Procesando solicitud...*\n\n{formatted_steps}"
     
     sent_message = await update.message.reply_text(message_text, parse_mode='Markdown')
@@ -80,18 +118,25 @@ async def update_progress_message(context, chat_id, message_id, steps_status):
         context: The Telegram Context object.
         chat_id (int): The ID of the chat.
         message_id (int): The ID of the message to edit.
-        steps_status (list of tuples): List of (step_name, status).
-                                       Status can be "pending", "completed", "failed".
+        steps_status (list of tuples): List of (step_name, status, [optional_elapsed]).
+                                       Status can be "pending", "in_progress", "completed", "failed".
     """
     formatted_steps = []
     
-    for step_name, status in steps_status:
+    for item in steps_status:
+        step_name = item[0]
+        status = item[1]
+        elapsed = item[2] if len(item) > 2 else None
+
         if status == "completed":
-            formatted_steps.append(f"✅ **{step_name}**")
+            time_info = f" `({elapsed})`" if elapsed else ""
+            formatted_steps.append(f"✅ *{step_name}*{time_info}")
         elif status == "failed":
-            formatted_steps.append(f"❌ **{step_name}**")
-        else:
-            formatted_steps.append(f"~_{step_name}_~")
+            formatted_steps.append(f"❌ *{step_name}*")
+        elif status == "in_progress":
+            formatted_steps.append(f"⏳ *{step_name}*")
+        else: # pending
+            formatted_steps.append(f"⬜ {step_name}")
             
     message_text = f"🔄 *Procesando solicitud...*\n\n" + "\n".join(formatted_steps)
     
