@@ -1,4 +1,6 @@
 import re
+import subprocess
+import os
 
 # Common patterns for secrets
 # Captures: 
@@ -34,3 +36,18 @@ def find_secrets(text: str) -> list[str]:
     matches = SECRET_PATTERN.findall(text)
     # The secret value is the 6th capture group (index 5)
     return [match[5] for match in matches]
+
+def get_tracked_files() -> list[str]:
+    """
+    Returns a list of files tracked by git in the current repository.
+    """
+    try:
+        result = subprocess.run(
+            ['git', 'ls-files'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.splitlines()
+    except subprocess.CalledProcessError:
+        return []

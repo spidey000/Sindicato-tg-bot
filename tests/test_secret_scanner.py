@@ -41,3 +41,16 @@ def test_redact_line():
     
     # Multiple secrets on one line? (Maybe out of scope but good to know)
     # assert secret_scanner.redact_line('KEY1="a" KEY2="b"') == 'KEY1="<REDACTED_SECRET>" KEY2="<REDACTED_SECRET>"'
+
+def test_get_tracked_files(tmp_path):
+    """Test that it correctly identifies tracked files."""
+    # This might need to mock subprocess.run for git ls-files
+    # For now, let's just test a basic implementation if it's not using git
+    # But the spec says "tracked files", so git ls-files is ideal.
+    
+    # Let's assume we implement a function that calls git ls-files
+    # We will mock it in the actual test if needed, or just test it in the repo
+    files = secret_scanner.get_tracked_files()
+    assert 'README.md' in files
+    assert 'scripts/security/secret_scanner.py' in files
+    assert '.git/config' not in files
