@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from src.integrations.openrouter_client import OpenRouterClient
 from src.integrations.perplexity_client import PerplexityClient
 from src.integrations.notion_client import DelegadoNotionClient
+from src.config import SAVE_RAW_LLM_RESPONSES
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,19 @@ class AgentBase(ABC):
         initial_data = await self.generate_structured_draft_with_retry(context)
         initial_content = initial_data.get("content", "")
         
+        # DEBUG: Save raw response to Notion
+        if notion_page_id and SAVE_RAW_LLM_RESPONSES and self.llm_client.last_raw_response:
+            import json
+            raw_response_json = json.dumps(self.llm_client.last_raw_response, indent=2)
+            print("\n--- RAW LLM RESPONSE (Initial Draft) ---")
+            print(raw_response_json)
+            logger.debug(f"RAW LLM RESPONSE (Initial Draft):\n{raw_response_json}")
+            self.notion_client.append_raw_llm_response(
+                notion_page_id, 
+                raw_response_json
+            )
+
+        
         if not initial_content:
             initial_data["verification_status"] = "Skipped (No Content)"
             return initial_data
@@ -72,6 +86,20 @@ class AgentBase(ABC):
             area=initial_data.get("area", "")
         )
         
+        # DEBUG: Save Perplexity raw response
+        if notion_page_id and SAVE_RAW_LLM_RESPONSES and self.pplx_client.last_raw_response:
+            import json
+            raw_response_json = json.dumps(self.pplx_client.last_raw_response, indent=2)
+            print("\n--- RAW PERPLEXITY RESPONSE ---")
+            print(raw_response_json)
+            logger.debug(f"RAW PERPLEXITY RESPONSE:\n{raw_response_json}")
+            # Creating a new method for this in notion_client might be better, but for now, re-using is fine.
+            self.notion_client.append_raw_llm_response(
+                notion_page_id, 
+                raw_response_json
+            )
+
+        
         if verification_feedback:
             logger.info("Draft verified. Refining...")
             
@@ -84,6 +112,18 @@ class AgentBase(ABC):
             refinement_instruction = f"VERIFICACIÓN LEGAL OBLIGATORIA:\n{verification_feedback}"
             refined_content = await self.refine_draft(initial_content, refinement_instruction)
             
+            # DEBUG: Save raw response to Notion
+            if notion_page_id and SAVE_RAW_LLM_RESPONSES and self.llm_client.last_raw_response:
+                import json
+                raw_response_json = json.dumps(self.llm_client.last_raw_response, indent=2)
+                print("\n--- RAW LLM RESPONSE (Refined Draft) ---")
+                print(raw_response_json)
+                logger.debug(f"RAW LLM RESPONSE (Refined Draft):\n{raw_response_json}")
+                self.notion_client.append_raw_llm_response(
+                    notion_page_id, 
+                    raw_response_json
+                )
+
             initial_data["content"] = refined_content
             initial_data["verification_status"] = "Verified"
         else:

@@ -272,6 +272,54 @@ class DelegadoNotionClient:
             logger.error(f"Error appending verification report to Notion: {e}")
             return False
 
+    def append_raw_llm_response(self, page_id: str, raw_response: str) -> bool:
+        """
+        Appends the raw LLM JSON response as a collapsible code block for debugging.
+        """
+        if not self.client:
+            return False
+
+        try:
+            # Notion's code block also has a 2000 character limit per block.
+            chunks = [raw_response[i:i+2000] for i in range(0, len(raw_response), 2000)]
+            
+            # Create a code block for each chunk.
+            child_blocks = [
+                {
+                    "type": "code",
+                    "code": {
+                        "rich_text": [{"type": "text", "text": {"content": chunk}}],
+                        "language": "json"
+                    }
+                } for chunk in chunks
+            ]
+
+            children = [
+                {
+                    "type": "toggle",
+                    "toggle": {
+                        "rich_text": [
+                            {
+                                "type": "text",
+                                "text": {"content": "🐞 Raw LLM Response (Debug)"}
+                            }
+                        ],
+                        "children": child_blocks
+                    }
+                }
+            ]
+
+            self.client.blocks.children.append(
+                block_id=page_id,
+                children=children
+            )
+            logger.info(f"Raw LLM response appended to Notion page {page_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error appending raw LLM response to Notion: {e}")
+            return False
+
+
     def get_last_case_id(self, type_prefix: str) -> Optional[str]:
         """
         Retrieves the last used Case ID for a given prefix (e.g., 'D', 'J') in the current year.

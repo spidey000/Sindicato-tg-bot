@@ -9,7 +9,8 @@ from src.config import (
     MODEL_FALLBACK,
     PRIMARY_DRAFT_MODEL,
     FALLBACK_DRAFT_MODEL,
-    REPAIR_MODEL
+    REPAIR_MODEL,
+    SAVE_RAW_LLM_RESPONSES
 )
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,7 @@ class OpenRouterClient:
             "HTTP-Referer": "https://github.com/sindicato-tg-bot", # Required by OpenRouter for rankings
             "X-Title": "Marxnager"
         }
+        self.last_raw_response = None
 
     async def completion(self, messages: list, model: str = None, response_format: dict = None, task_type: str = None) -> str:
         """
@@ -95,11 +97,25 @@ class OpenRouterClient:
             {"role": "user", "content": repair_prompt}
         ]
         
-        # Use qwen with structured_outputs parameter
-        repair_format = {"type": "json_object"}
+        # The `original_format` contains the schema. We must pass it to the repair model.
+        repair_format = original_format
         
         try:
-            repaired_content = await self._make_request(repair_messages, REPAIR_MODEL, repair_format)
+            # For qwen, response_format was removed in _make_request.
+            # So we pass it as a regular param here, and the model must rely on the prompt.
+            # This is a bit of a hack, but given the previous failures, we try to be flexible.
+            if "qwen" in REPAIR_MODEL.lower():
+                repaired_content = await self._make_request(repair_messages, REPAIR_MODEL, None)
+            else:
+                repaired_content = await self._make_request(repair_messages, REPAIR_MODEL, repair_format)
+            
+            # DEBUG: Log the repair attempt response
+            if SAVE_RAW_LLM_RESPONSES and self.last_raw_response:
+                raw_response_json = json.dumps(self.last_raw_response, indent=2)
+                print("\n--- RAW LLM RESPONSE (JSON Repair Attempt) ---")
+                print(raw_response_json)
+                logger.debug(f"RAW LLM RESPONSE (JSON Repair Attempt):\n{raw_response_json}")
+
             return repaired_content
         except Exception as e:
             logger.error(f"JSON repair failed: {e}")
@@ -108,10 +124,11 @@ class OpenRouterClient:
     async def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
         payload = {
             "model": model,
-            "messages": messages
+            "messages": messages,
+            "max_tokens": 8192  # Set a reasonable limit to avoid context length errors
         }
         
-        if response_format:
+        if response_format and "deepseek" in model.lower():
             payload["response_format"] = response_format
         
         max_retries = 3
@@ -124,10 +141,21 @@ class OpenRouterClient:
                         f"{self.base_url}/chat/completions",
                         headers=self.headers,
                         json=payload,
-                        timeout=60 # Reasonable timeout for LLMs
+                        timeout=300
                     ) as response:
-                        response.raise_for_status()
+                        # Check for non-200 status codes first and log detailed error
+                        if response.status != 200:
+                            error_text = await response.text()
+                            logger.warning(
+                                f"Attempt {attempt + 1}/{max_retries} for {model} failed with status {response.status}. "
+                                f"Reason: {response.reason}. Full Response: {error_text}"
+                            )
+                            # Raise a generic exception to trigger the retry logic
+                            response.raise_for_status()
+
+                        # If status is 200, proceed
                         data = await response.json()
+                        self.last_raw_response = data
                         
                         if "choices" in data and len(data["choices"]) > 0:
                             return data["choices"][0]["message"]["content"]
@@ -135,8 +163,9 @@ class OpenRouterClient:
                             raise ValueError(f"Invalid response from OpenRouter: {data}")
             
             except (aiohttp.ClientError, ValueError) as e:
-                logger.warning(f"Attempt {attempt + 1}/{max_retries} failed for {model}: {e}")
+                logger.warning(f"Attempt {attempt + 1}/{max_retries} for {model} failed: {e}")
                 if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay * (2 ** attempt)) # Exponential backoff
+                    await asyncio.sleep(retry_delay * (2 ** attempt))
                 else:
+                    logger.error(f"All attempts failed for model {model}.")
                     raise e

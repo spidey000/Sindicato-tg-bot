@@ -28,13 +28,17 @@ AUTHORIZED_USERS = get_authorized_users()
 # OpenRouter Configuration
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-MODEL_PRIMARY = os.getenv("MODEL_PRIMARY", "deepseek/deepseek-r1:free")
+MODEL_PRIMARY = os.getenv("MODEL_PRIMARY", "deepseek/deepseek-r1-0528:free")
 MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "moonshotai/moonlight-2:free")
 
 # Drafting & Repair Models
-PRIMARY_DRAFT_MODEL = "openai/gpt-oss-120b:free"
+PRIMARY_DRAFT_MODEL = "deepseek/deepseek-r1-0528:free"
 FALLBACK_DRAFT_MODEL = "google/gemma-3-27b-it:free"
 REPAIR_MODEL = "qwen/qwen3-4b:free"
+
+# Debugging
+SAVE_RAW_LLM_RESPONSES = os.getenv("SAVE_RAW_LLM_RESPONSES", "False").lower() in ('true', '1', 't')
+
 
 # Perplexity Configuration
 PERPLEXITY_API_KEY_PRIMARY = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
