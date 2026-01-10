@@ -8,7 +8,7 @@
     - [ ] Subtask: Write failing test for detecting dummy secrets (e.g., `API_KEY="12345"`).
     - [ ] Subtask: Implement regex-based detection in `secret_scanner.py`.
     - [ ] Subtask: Verify tests pass.
-- [ ] Task: Implement Redaction Logic (TDD)
+- [x] Task: Implement Redaction Logic (TDD) 698154a
     - [ ] Subtask: Write failing test for replacing detected secret with `<REDACTED_SECRET>`.
     - [ ] Subtask: Implement replacement method.
     - [ ] Subtask: Verify tests pass.
