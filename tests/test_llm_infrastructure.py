@@ -2,7 +2,7 @@
 import pytest
 from src import config
 from src.integrations.openrouter_client import OpenRouterClient
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 def test_config_models_constants():
     """Test that new model constants are correctly defined in config.py."""
@@ -14,13 +14,15 @@ def test_config_models_constants():
     assert config.FALLBACK_DRAFT_MODEL == "google/gemma-3-27b-it:free"
     assert config.REPAIR_MODEL == "qwen/qwen3-4b:free"
 
-def test_completion_interface_accepts_task_type():
+@pytest.mark.asyncio
+async def test_completion_interface_accepts_task_type():
     """Test that completion method accepts task_type parameter."""
     client = OpenRouterClient()
-    client._make_request = MagicMock(return_value="Mock Response")
+    # Mock _make_request as async
+    client._make_request = AsyncMock(return_value="Mock Response")
     
     # This should not raise a TypeError
     try:
-        client.completion(messages=[], task_type="DRAFT")
+        await client.completion(messages=[], task_type="DRAFT")
     except TypeError as e:
         pytest.fail(f"completion method does not accept task_type: {e}")

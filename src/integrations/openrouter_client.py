@@ -1,4 +1,5 @@
-import requests
+import aiohttp
+import asyncio
 import json
 import logging
 from src.config import (
@@ -24,7 +25,7 @@ class OpenRouterClient:
             "X-Title": "Marxnager"
         }
 
-    def completion(self, messages: list, model: str = None, response_format: dict = None, task_type: str = None) -> str:
+    async def completion(self, messages: list, model: str = None, response_format: dict = None, task_type: str = None) -> str:
         """
         Generates a completion using OpenRouter.
         Tries the primary model first, then falls back to the secondary model.
@@ -45,7 +46,7 @@ class OpenRouterClient:
         target_model = model or primary
         
         try:
-            content = self._make_request(messages, target_model, response_format)
+            content = await self._make_request(messages, target_model, response_format)
             
             # Check if JSON repair is needed
             if response_format and response_format.get("type") == "json_object":
@@ -53,7 +54,7 @@ class OpenRouterClient:
                     json.loads(content)
                 except json.JSONDecodeError:
                     logger.warning(f"Invalid JSON from {target_model}. Attempting repair with {REPAIR_MODEL}.")
-                    content = self._repair_json(content, response_format)
+                    content = await self._repair_json(content, response_format)
             
             return content
             
@@ -62,7 +63,7 @@ class OpenRouterClient:
             if target_model != fallback:
                 logger.info(f"Retrying with fallback model: {fallback}")
                 try:
-                    content = self._make_request(messages, fallback, response_format)
+                    content = await self._make_request(messages, fallback, response_format)
                     
                     # Check if JSON repair is needed for fallback
                     if response_format and response_format.get("type") == "json_object":
@@ -70,7 +71,7 @@ class OpenRouterClient:
                             json.loads(content)
                         except json.JSONDecodeError:
                             logger.warning(f"Invalid JSON from fallback {fallback}. Attempting repair with {REPAIR_MODEL}.")
-                            content = self._repair_json(content, response_format)
+                            content = await self._repair_json(content, response_format)
                     
                     return content
                 except Exception as e2:
@@ -79,7 +80,7 @@ class OpenRouterClient:
             else:
                 return f"Error generating text: {e}"
 
-    def _repair_json(self, invalid_content: str, original_format: dict) -> str:
+    async def _repair_json(self, invalid_content: str, original_format: dict) -> str:
         """
         Attempts to repair malformed JSON using the REPAIR_MODEL.
         """
@@ -98,13 +99,13 @@ class OpenRouterClient:
         repair_format = {"type": "json_object"}
         
         try:
-            repaired_content = self._make_request(repair_messages, REPAIR_MODEL, repair_format)
+            repaired_content = await self._make_request(repair_messages, REPAIR_MODEL, repair_format)
             return repaired_content
         except Exception as e:
             logger.error(f"JSON repair failed: {e}")
             return invalid_content
 
-    def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
+    async def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
         payload = {
             "model": model,
             "messages": messages
@@ -118,25 +119,24 @@ class OpenRouterClient:
         
         for attempt in range(max_retries):
             try:
-                response = requests.post(
-                    f"{self.base_url}/chat/completions",
-                    headers=self.headers,
-                    data=json.dumps(payload),
-                    timeout=60 # Reasonable timeout for LLMs
-                )
-                
-                response.raise_for_status()
-                data = response.json()
-                
-                if "choices" in data and len(data["choices"]) > 0:
-                    return data["choices"][0]["message"]["content"]
-                else:
-                    raise ValueError(f"Invalid response from OpenRouter: {data}")
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(
+                        f"{self.base_url}/chat/completions",
+                        headers=self.headers,
+                        json=payload,
+                        timeout=60 # Reasonable timeout for LLMs
+                    ) as response:
+                        response.raise_for_status()
+                        data = await response.json()
+                        
+                        if "choices" in data and len(data["choices"]) > 0:
+                            return data["choices"][0]["message"]["content"]
+                        else:
+                            raise ValueError(f"Invalid response from OpenRouter: {data}")
             
-            except (requests.exceptions.RequestException, ValueError) as e:
+            except (aiohttp.ClientError, ValueError) as e:
                 logger.warning(f"Attempt {attempt + 1}/{max_retries} failed for {model}: {e}")
                 if attempt < max_retries - 1:
-                    import time
-                    time.sleep(retry_delay * (2 ** attempt)) # Exponential backoff
+                    await asyncio.sleep(retry_delay * (2 ** attempt)) # Exponential backoff
                 else:
                     raise e

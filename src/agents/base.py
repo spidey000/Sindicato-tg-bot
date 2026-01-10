@@ -18,7 +18,7 @@ class AgentBase(ABC):
     def get_system_prompt(self) -> str:
         pass
 
-    def generate_draft(self, context: str) -> str:
+    async def generate_draft(self, context: str) -> str:
         """
         Generates a draft document based on the user context using the agent's persona.
         """
@@ -29,7 +29,7 @@ class AgentBase(ABC):
         ]
         
         logger.info(f"Generating draft with {self.__class__.__name__} using OpenRouter...")
-        return self.llm_client.completion(messages, task_type="DRAFT")
+        return await self.llm_client.completion(messages, task_type="DRAFT")
 
     async def verify_draft_content(self, content: str, thesis: str = "", specific_point: str = "", area: str = "") -> str:
         """
@@ -42,12 +42,12 @@ class AgentBase(ABC):
             area=area
         )
 
-    def refine_draft_with_feedback(self, content: str, feedback: str) -> str:
+    async def refine_draft_with_feedback(self, content: str, feedback: str) -> str:
         """
         Refines the draft based on explicit verification feedback.
         """
         refinement_instruction = f"VERIFICACIÓN LEGAL OBLIGATORIA:\n{feedback}"
-        return self.refine_draft(content, refinement_instruction)
+        return await self.refine_draft(content, refinement_instruction)
 
     async def generate_structured_draft_verified(self, context: str, notion_page_id: str = None) -> dict:
         """
@@ -55,7 +55,7 @@ class AgentBase(ABC):
         Returns a dict with 'summary', 'content', and 'verification_status'.
         """
         # 1. Generate Initial Draft (includes metadata: thesis, specific_point, area)
-        initial_data = self.generate_structured_draft_with_retry(context)
+        initial_data = await self.generate_structured_draft_with_retry(context)
         initial_content = initial_data.get("content", "")
         
         if not initial_content:
@@ -82,7 +82,7 @@ class AgentBase(ABC):
 
             # 4. Refine
             refinement_instruction = f"VERIFICACIÓN LEGAL OBLIGATORIA:\n{verification_feedback}"
-            refined_content = self.refine_draft(initial_content, refinement_instruction)
+            refined_content = await self.refine_draft(initial_content, refinement_instruction)
             
             initial_data["content"] = refined_content
             initial_data["verification_status"] = "Verified"
@@ -92,13 +92,13 @@ class AgentBase(ABC):
             
         return initial_data
 
-    def generate_structured_draft(self, context: str) -> dict:
+    async def generate_structured_draft(self, context: str) -> dict:
         """
         Legacy wrapper for generate_structured_draft_with_retry.
         """
-        return self.generate_structured_draft_with_retry(context)
+        return await self.generate_structured_draft_with_retry(context)
 
-    def generate_structured_draft_with_retry(self, context: str) -> dict:
+    async def generate_structured_draft_with_retry(self, context: str) -> dict:
         """
         Generates a draft and a short summary, returning a JSON-parsed dictionary.
         Expected keys: 'summary', 'content'.
@@ -126,7 +126,7 @@ class AgentBase(ABC):
             logger.info(f"Generating structured draft with {self.__class__.__name__} (Attempt {attempt + 1}/{max_retries})...")
             
             # Request JSON object format
-            raw_response = self.llm_client.completion(
+            raw_response = await self.llm_client.completion(
                 messages, 
                 response_format={"type": "json_object"},
                 task_type="DRAFT"
@@ -183,7 +183,7 @@ class AgentBase(ABC):
         
         raise ValueError("Unexpected error in retry loop.")
 
-    def refine_draft(self, current_content: str, new_info: str) -> str:
+    async def refine_draft(self, current_content: str, new_info: str) -> str:
         """
         Refines an existing draft with new information.
         """
@@ -208,4 +208,4 @@ class AgentBase(ABC):
         ]
         
         logger.info(f"Refining draft with {self.__class__.__name__}...")
-        return self.llm_client.completion(messages, task_type="REFINEMENT")
+        return await self.llm_client.completion(messages, task_type="REFINEMENT")

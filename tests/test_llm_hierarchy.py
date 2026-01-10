@@ -1,6 +1,6 @@
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, ANY, AsyncMock
 from src.integrations.openrouter_client import OpenRouterClient
 from src import config
 
@@ -8,24 +8,26 @@ from src import config
 def client():
     return OpenRouterClient()
 
-def test_draft_hierarchy_primary_success(client):
+@pytest.mark.asyncio
+async def test_draft_hierarchy_primary_success(client):
     """Test that DRAFT task uses primary draft model on first attempt."""
-    with patch.object(client, '_make_request') as mock_request:
+    with patch.object(client, '_make_request', new_callable=AsyncMock) as mock_request:
         mock_request.return_value = '{"draft": "content"}'
         
-        response = client.completion(messages=[], task_type="DRAFT")
+        response = await client.completion(messages=[], task_type="DRAFT")
         
         # Should call _make_request with PRIMARY_DRAFT_MODEL
         mock_request.assert_called_with([], config.PRIMARY_DRAFT_MODEL, None)
         assert response == '{"draft": "content"}'
 
-def test_draft_hierarchy_fallback_on_primary_failure(client):
+@pytest.mark.asyncio
+async def test_draft_hierarchy_fallback_on_primary_failure(client):
     """Test that DRAFT task falls back to fallback draft model if primary fails."""
-    with patch.object(client, '_make_request') as mock_request:
+    with patch.object(client, '_make_request', new_callable=AsyncMock) as mock_request:
         # First call fails, second call succeeds
         mock_request.side_effect = [Exception("Primary Failed"), '{"draft": "fallback content"}']
         
-        response = client.completion(messages=[], task_type="DRAFT")
+        response = await client.completion(messages=[], task_type="DRAFT")
         
         # Verify both calls
         assert mock_request.call_count == 2
@@ -34,29 +36,31 @@ def test_draft_hierarchy_fallback_on_primary_failure(client):
         assert calls[1].args == ([], config.FALLBACK_DRAFT_MODEL, None)
         assert response == '{"draft": "fallback content"}'
 
-def test_refinement_uses_configured_primary(client):
+@pytest.mark.asyncio
+async def test_refinement_uses_configured_primary(client):
     """Test that REFINEMENT task still uses the default MODEL_PRIMARY."""
-    with patch.object(client, '_make_request') as mock_request:
+    with patch.object(client, '_make_request', new_callable=AsyncMock) as mock_request:
         mock_request.return_value = '{"refinement": "content"}'
         
-        response = client.completion(messages=[], task_type="REFINEMENT")
+        response = await client.completion(messages=[], task_type="REFINEMENT")
         
         # Should call _make_request with MODEL_PRIMARY (deepseek)
         mock_request.assert_called_with([], config.MODEL_PRIMARY, None)
 
-def test_json_repair_triggered_on_invalid_json(client):
+@pytest.mark.asyncio
+async def test_json_repair_triggered_on_invalid_json(client):
     """Test that JSON repair is triggered when response is not valid JSON."""
     invalid_json = "This is not JSON { incomplete: "
     valid_json = '{"fixed": "data"}'
     
-    with patch.object(client, '_make_request') as mock_request:
+    with patch.object(client, '_make_request', new_callable=AsyncMock) as mock_request:
         # First call returns invalid JSON, second (repair) returns valid JSON
         mock_request.side_effect = [invalid_json, valid_json]
         
         # We need a schema or at least a hint for the repair
         response_format = {"type": "json_object", "schema": {"type": "object"}}
         
-        response = client.completion(messages=[], response_format=response_format)
+        response = await client.completion(messages=[], response_format=response_format)
         
         # Verify repair call
         assert mock_request.call_count == 2
@@ -75,15 +79,16 @@ def test_json_repair_triggered_on_invalid_json(client):
         assert invalid_json in repair_messages[1]["content"]
         assert response == valid_json
 
-def test_json_repair_failure_falls_back(client):
+@pytest.mark.asyncio
+async def test_json_repair_failure_falls_back(client):
     """Test that if repair also fails, it returns the error or original text."""
     invalid_json = "Invalid"
     still_invalid = "Still Invalid"
     
-    with patch.object(client, '_make_request') as mock_request:
+    with patch.object(client, '_make_request', new_callable=AsyncMock) as mock_request:
         mock_request.side_effect = [invalid_json, still_invalid]
         
-        response = client.completion(messages=[], response_format={"type": "json_object"})
+        response = await client.completion(messages=[], response_format={"type": "json_object"})
         
         # Should attempt repair and then return the result (which might be the error string or original)
         # The current implementation of completion handles exceptions by returning error strings.

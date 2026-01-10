@@ -24,18 +24,18 @@ class TestAgentRefactor(unittest.IsolatedAsyncioTestCase):
         feedback = await self.agent.verify_draft_content(draft)
         
         self.assertEqual(feedback, expected_feedback)
-        self.agent.pplx_client.verify_draft.assert_called_once_with(draft)
+        self.agent.pplx_client.verify_draft.assert_called_once_with(context=draft, thesis="", specific_point="", area="")
 
-    def test_refine_draft_with_feedback_method(self):
+    async def test_refine_draft_with_feedback_method(self):
         # Expectation: Agent should expose refine_draft_with_feedback method
         
         content = "Old Content"
         feedback = "Needs fix"
         expected_new_content = "New Content"
         
-        self.agent.llm_client.completion.return_value = expected_new_content
+        self.agent.llm_client.completion = AsyncMock(return_value=expected_new_content)
         
-        new_content = self.agent.refine_draft_with_feedback(content, feedback)
+        new_content = await self.agent.refine_draft_with_feedback(content, feedback)
         
         self.assertEqual(new_content, expected_new_content)
         # Verify it calls llm_client.completion with correct prompt structure
