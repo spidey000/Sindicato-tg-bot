@@ -8,9 +8,9 @@
 - [x] Task: Run the test and confirm that it fails as expected due to `response_format` not being passed to the mocked `_make_request` in the repair call.
 - [ ] Task: Conductor - User Manual Verification 'Create a Failing Test for `response_format` in Qwen Repair' (Protocol in workflow.md)
 
-## Phase 2: Implement the Fix for Qwen `json_object`
-- [ ] Task: Modify `src/integrations/openrouter_client.py` to re-enable conditional passing of `response_format` in `_make_request`. Specifically, add `if response_format: payload["response_format"] = response_format`.
-- [ ] Task: Modify `src/integrations/openrouter_client.py` to ensure that `_repair_json` explicitly passes `response_format={"type": "json_object"}` to its `_make_request` call.
+## Phase 2: Implement the Fix for Qwen `json_object` [checkpoint: c68f1ba]
+- [~] Task: Modify `src/integrations/openrouter_client.py` to re-enable conditional passing of `response_format` in `_make_request`. Specifically, add `if response_format: payload["response_format"] = response_format`.
+- [x] Task: Modify `src/integrations/openrouter_client.py` to ensure that `_repair_json` explicitly passes `response_format={"type": "json_object"}` to its `_make_request` call.
 - [ ] Task: Conductor - User Manual Verification 'Implement the Fix for Qwen `json_object`' (Protocol in workflow.md)
 
 ## Phase 3: Verify the Solution and Regression
