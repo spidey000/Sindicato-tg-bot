@@ -23,14 +23,9 @@ Implement the sequential fallback for the first draft generation.
 ## Phase 3: JSON Repair Mechanism
 Implement the global logic that catches invalid JSON and sends it to Qwen.
 
-- [ ] **Task 1: Write Tests for JSON Repair**
-    - [ ] Add tests to `tests/test_llm_hierarchy.py` for malformed JSON triggers.
-    - [ ] Mock a malformed response and verify that `qwen/qwen3-4b:free` is called with the correct prompt and `structured_outputs`.
-- [ ] **Task 2: Implement `_repair_json` Private Method**
-    - [ ] Create a dedicated method in `OpenRouterClient` for the Qwen repair call.
-    - [ ] Ensure it uses the `response_format: { "type": "json_object" }` parameter.
-- [ ] **Task 3: Integrate Repair into Main Execution Flow**
-    - [ ] Update the `OpenRouterClient` completion loop to wrap JSON parsing in a try-repair-retry logic.
+- [x] **Task 1: Write Tests for JSON Repair** <!-- 868d413 -->
+- [x] **Task 2: Implement `_repair_json` Private Method** <!-- 868d413 -->
+- [x] **Task 3: Integrate Repair into Main Execution Flow** <!-- 868d413 -->
 - [ ] **Task: Conductor - User Manual Verification 'Phase 3: JSON Repair Mechanism' (Protocol in workflow.md)**
 
 ## Phase 4: Integration and Refinement Stage
