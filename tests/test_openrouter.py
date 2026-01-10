@@ -23,5 +23,19 @@ class TestOpenRouter(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(response, "")
         self.assertNotIn("Error", response)
 
+    async def test_json_forcing_failure(self):
+        """Test that the call now succeeds even when JSON is requested."""
+        print(f"\nTesting for JSON forcing failure (expecting success now)...")
+        
+        response = await self.client.completion(
+            self.test_messages,
+            response_format={"type": "json_object"}
+        )
+        
+        print(f"Response: {response}")
+        self.assertIsNotNone(response)
+        self.assertNotEqual(response, "")
+        self.assertNotIn("Error", response)
+
 if __name__ == '__main__':
     unittest.main()
