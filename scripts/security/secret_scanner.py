@@ -1,17 +1,30 @@
 import re
 
 # Common patterns for secrets
-# Captures: 1=Variable Name, 2=Separator, 3=Quote (optional), 4=Secret Value
+# Captures: 
+# 1=Variable Name
+# 2=Whitespace before separator
+# 3=Separator (= or :)
+# 4=Whitespace after separator
+# 5=Quote (optional)
+# 6=Secret Value
 SECRET_PATTERN = re.compile(
-    r'(?i)(API_KEY|TOKEN|PASSWORD|SECRET|CREDENTIALS?)\s*(=|:)\s*(["\'])?([^"\s\']+)\3?'
+    r'''(?i)(API_KEY|TOKEN|PASSWORD|SECRET|CREDENTIALS?)(\s*)([=:])(\s*)(["'])?([^"'\s]+)\5?'''
 )
 
-def scan_line(line: str) -> str:
+def redact_line(line: str) -> str:
     """
     Scans a line for secrets and returns the redacted line.
     """
-    # Placeholder for now, will be implemented in next task
-    return line
+    def replace_match(match):
+        key = match.group(1)
+        ws1 = match.group(2)
+        sep = match.group(3)
+        ws2 = match.group(4)
+        quote = match.group(5) or ''
+        return f"{key}{ws1}{sep}{ws2}{quote}<REDACTED_SECRET>{quote}"
+        
+    return SECRET_PATTERN.sub(replace_match, line)
 
 def find_secrets(text: str) -> list[str]:
     """
@@ -19,5 +32,5 @@ def find_secrets(text: str) -> list[str]:
     Returns a list of the found secret values.
     """
     matches = SECRET_PATTERN.findall(text)
-    # The secret value is the 4th capture group (index 3)
-    return [match[3] for match in matches]
+    # The secret value is the 6th capture group (index 5)
+    return [match[5] for match in matches]
