@@ -31,8 +31,8 @@ Implement the global logic that catches invalid JSON and sends it to Qwen.
 ## Phase 4: Integration and Refinement Stage
 Ensure the existing refinement flow uses the new repair logic but keeps its current models.
 
-- [ ] **Task 1: Verify Refinement Logic**
+- [x] **Task 1: Verify Refinement Logic** <!-- e66a77d -->
     - [ ] Add integration tests ensuring `REFINEMENT` tasks still use `deepseek-r1` (or current config) but *do* trigger Qwen repair on failure.
-- [ ] **Task 2: Update Agent Handlers**
+- [x] **Task 2: Update Agent Handlers** <!-- d6efda9 -->
     - [ ] Update calls in `Inspector`, `Litigante`, and `Comunicador` to pass the correct `task_type`.
 - [ ] **Task: Conductor - User Manual Verification 'Phase 4: Integration and Refinement Stage' (Protocol in workflow.md)**
