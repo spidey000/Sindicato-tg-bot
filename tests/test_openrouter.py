@@ -78,5 +78,41 @@ class TestOpenRouter(unittest.IsolatedAsyncioTestCase):
         # Ensure _make_request was called twice (initial + repair)
         self.assertEqual(mock_make_request.call_count, 2)
 
+    @patch('src.integrations.openrouter_client.OpenRouterClient._make_request', new_callable=AsyncMock)
+    async def test_qwen_json_repair_response_format(self, mock_make_request):
+        """
+        Test that the _make_request call from _repair_json initially does NOT
+        receive response_format={"type": "json_object"}. This is our failing test.
+        """
+        print("\nTesting Qwen JSON repair response_format (failing test)...")
+
+        malformed_json = '{"key": "value",' # Malformed JSON to trigger repair
+
+        # Configure the mock. The first call will trigger repair.
+        # The second call is what we want to inspect for response_format.
+        mock_make_request.side_effect = [
+            malformed_json, # First call (primary model)
+            json.dumps({"repaired_key": "repaired_value"}) # Placeholder for repair model's response
+        ]
+
+        # Call completion, which will eventually call _repair_json
+        await self.client.completion(
+            self.test_messages,
+            model=os.getenv('PRIMARY_DRAFT_MODEL'),
+            response_format={"type": "json_object"}
+        )
+
+        # Assert that _make_request was called at least twice (initial + repair)
+        self.assertGreaterEqual(mock_make_request.call_count, 2)
+
+        # Get the arguments of the second call to _make_request (the one from _repair_json)
+        # The args are (messages, model, response_format)
+        repair_call_args = mock_make_request.call_args_list[1]
+        
+        # This is the FAILING ASSERTION: Expect response_format to NOT be present in the second call
+        # It's currently None because the fix for this track is not yet implemented.
+        self.assertIsNone(repair_call_args.kwargs.get('response_format'))
+
+
 if __name__ == '__main__':
     unittest.main()
