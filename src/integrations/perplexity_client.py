@@ -10,7 +10,7 @@ class PerplexityClient:
         self.primary_key = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
         self.fallback_key = os.getenv("PERPLEXITY_API_KEY_FALLBACK")
         self.api_url = "https://api.perplexity.ai/chat/completions"
-        self.model = "sonar-pro" # Using an online model for grounding
+        self.model = "sonar-reasoning-pro" # Using an online model for grounding
         self.last_raw_response = None
 
     async def verify_draft(self, context: str, thesis: str = "", specific_point: str = "", area: str = "") -> Optional[str]:
@@ -21,9 +21,9 @@ class PerplexityClient:
         
         system_prompt = (
             "Actúa como abogado laboralista especializado en derecho laboral español. "
-            f"CONTEXTO DEL CASO: {context} "
+            f"CONTEXTO DEL CASO: {context} el centro de trabajo es el aeropuesto de madrid barajas en las torres de control que proveen el servicio de direccion de plataforma o SDP que se rige por el convenio de aplicacion es el Resolución de 27 de febrero de 2023, de la Dirección General de Trabajo, por la que se registra y publica el XX Convenio colectivo nacional de empresas de ingeniería; oficinas de estudios técnicos; inspección, supervisión y control técnico y de calidad que se puede consultar en https://www.boe.es/diario_boe/txt.php?id=BOE-A-2023-6346"
             "OBJETIVO: Busca y analiza: "
-            "1. Normativa española aplicable (leyes, reales decretos, convenios colectivos) "
+            "1. Normativa española aplicable (leyes, reales decretos) "
             f"2. Jurisprudencia del Tribunal Supremo y tribunales superiores que apoye {thesis} "
             f"3. Doctrina judicial relevante sobre {specific_point} "
             "REQUISITOS ESPECÍFICOS: "
@@ -51,7 +51,10 @@ class PerplexityClient:
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.1
+            "temperature": 0.1,
+            "web_search_options": {
+                "search_type": "auto"  # Automatic classification
+            }
         }
 
         # Try Primary Key

@@ -15,6 +15,28 @@ from src.config import (
 
 logger = logging.getLogger(__name__)
 
+# Model-specific max_tokens configuration
+# Maps model name patterns to their optimal max_tokens value
+MODEL_MAX_TOKENS = {
+    "deepseek/deepseek-r1": 16384,
+    "deepseek/deepseek-chat": 8192,
+    "google/gemma-3-27b": 8192,
+    "moonshotai/moonlight": 8192,
+    "qwen/qwen3-4b": 4096,
+    "anthropic/claude": 8192,
+    "openai/gpt-4": 8192,
+}
+
+DEFAULT_MAX_TOKENS = 8192
+
+def get_max_tokens_for_model(model: str) -> int:
+    """Returns the optimal max_tokens value for a given model."""
+    model_lower = model.lower()
+    for pattern, max_tokens in MODEL_MAX_TOKENS.items():
+        if pattern in model_lower:
+            return max_tokens
+    return DEFAULT_MAX_TOKENS
+
 class OpenRouterClient:
     def __init__(self):
         self.api_key = OPENROUTER_API_KEY
@@ -122,10 +144,11 @@ class OpenRouterClient:
             return invalid_content
 
     async def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
+        max_tokens = get_max_tokens_for_model(model)
         payload = {
             "model": model,
             "messages": messages,
-            "max_tokens": 8192  # Set a reasonable limit to avoid context length errors
+            "max_tokens": max_tokens
         }
         
         if response_format and "deepseek" in model.lower():

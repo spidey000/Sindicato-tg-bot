@@ -32,9 +32,10 @@ MODEL_PRIMARY = os.getenv("MODEL_PRIMARY", "deepseek/deepseek-r1-0528:free")
 MODEL_FALLBACK = os.getenv("MODEL_FALLBACK", "moonshotai/moonlight-2:free")
 
 # Drafting & Repair Models
-PRIMARY_DRAFT_MODEL = "deepseek/deepseek-r1-0528:free"
-FALLBACK_DRAFT_MODEL = "google/gemma-3-27b-it:free"
-REPAIR_MODEL = "qwen/qwen3-4b:free"
+# Drafting & Repair Models
+PRIMARY_DRAFT_MODEL = os.getenv("PRIMARY_DRAFT_MODEL", "deepseek/deepseek-r1-0528:free")
+FALLBACK_DRAFT_MODEL = os.getenv("FALLBACK_DRAFT_MODEL", "google/gemma-3-27b-it:free")
+REPAIR_MODEL = os.getenv("REPAIR_MODEL", "qwen/qwen3-4b:free")
 
 # Debugging
 SAVE_RAW_LLM_RESPONSES = os.getenv("SAVE_RAW_LLM_RESPONSES", "False").lower() in ('true', '1', 't')
