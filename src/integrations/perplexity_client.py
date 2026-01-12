@@ -77,6 +77,89 @@ class PerplexityClient:
 
         return None
 
+    async def research_case(self, context: str, document_type: str = "demanda") -> Optional[str]:
+        """
+        Uses Perplexity to research legal grounds for a case.
+        Returns raw research output to be fed verbatim to OpenRouter for document generation.
+        
+        Args:
+            context: User-provided facts of the case
+            document_type: Type of document ('demanda' or 'denuncia')
+        """
+        
+        # Build research prompt based on document type
+        if document_type == "denuncia":
+            action_focus = "denuncia ante la Inspección de Trabajo y Seguridad Social (ITSS)"
+            legal_focus = "infracciones administrativas laborales y sanciones según LISOS"
+        else:
+            action_focus = "demanda judicial ante los Juzgados de lo Social"
+            legal_focus = "procedimientos judiciales laborales según la LRJS"
+        
+        system_prompt = (
+            "Eres un investigador jurídico especializado en derecho laboral español. "
+            "Tu tarea es investigar y proporcionar información legal para fundamentar una acción legal.\n\n"
+            f"TIPO DE ACCIÓN: {action_focus}\n"
+            f"ENFOQUE LEGAL: {legal_focus}\n\n"
+            "CONTEXTO LABORAL FIJO:\n"
+            "- Centro de trabajo: Aeropuerto Adolfo Suárez Madrid-Barajas\n"
+            "- Servicio: Dirección de Plataforma (SDP)\n"
+            "- Convenio aplicable: XX Convenio colectivo nacional de empresas de ingeniería "
+            "(BOE-A-2023-6346, Resolución 27 febrero 2023)\n\n"
+            "INSTRUCCIONES:\n"
+            "1. Analiza los hechos proporcionados e identifica las posibles vulneraciones legales\n"
+            "2. Busca normativa española aplicable (Estatuto de los Trabajadores, LRJS, LISOS, convenio)\n"
+            "3. Encuentra jurisprudencia reciente del Tribunal Supremo y TSJ que apoye la reclamación\n"
+            "4. Proporciona citas exactas con números de sentencia y fechas\n"
+            "5. Identifica el tipo de procedimiento y plazos aplicables\n\n"
+            "FORMATO DE RESPUESTA:\n"
+            "## CALIFICACIÓN JURÍDICA\n"
+            "[Tipo de acción recomendada y fundamento]\n\n"
+            "## NORMATIVA APLICABLE\n"
+            "[Artículos específicos del ET, LRJS, convenio]\n\n"
+            "## JURISPRUDENCIA\n"
+            "[Sentencias con referencia exacta: Tribunal, fecha, nº recurso]\n\n"
+            "## ARGUMENTACIÓN\n"
+            "[Líneas argumentales principales]\n\n"
+            "## PLAZOS Y PROCEDIMIENTO\n"
+            "[Plazos de caducidad/prescripción y trámites previos]"
+        )
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"HECHOS DEL CASO:\n{context}\n\nInvestiga y proporciona la fundamentación jurídica completa."}
+        ]
+
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.1,
+            "web_search_options": {
+                "search_type": "auto"
+            }
+        }
+
+        # Try Primary Key
+        if self.primary_key:
+            result = await self._make_request(self.primary_key, payload)
+            if result:
+                logger.info(f"✅ Perplexity Research SUCCESS for {document_type}. Length: {len(result)} chars.")
+                return result
+            logger.warning("Perplexity Primary Key failed for research. Attempting Fallback.")
+        else:
+            logger.warning("Perplexity Primary Key not configured.")
+
+        # Try Fallback Key
+        if self.fallback_key:
+            result = await self._make_request(self.fallback_key, payload)
+            if result:
+                logger.info(f"✅ Perplexity Research SUCCESS (fallback) for {document_type}. Length: {len(result)} chars.")
+                return result
+            logger.error("Perplexity Fallback Key also failed for research.")
+        else:
+            logger.warning("Perplexity Fallback Key not configured.")
+
+        return None
+
     async def _make_request(self, api_key: str, payload: dict) -> Optional[str]:
         headers = {
             "Authorization": f"Bearer {api_key}",

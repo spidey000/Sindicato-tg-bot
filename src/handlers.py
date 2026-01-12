@@ -448,22 +448,36 @@ async def stop_editing_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 @restricted
 async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /demanda command."""
+    """
+    Handler for the /demanda command.
+    
+    NEW PIPELINE:
+    1. Initialization - Generate case ID
+    2. Research - Perplexity researches legal grounds (verbatim)
+    3. Document Generation - OpenRouter fills template with facts + research
+    4. Notion Entry - Create page
+    5. Drive Structure - Create folder
+    6. Docs Creation - Save document to Google Docs
+    7. Finalization - Link everything
+    """
+    from src.integrations.perplexity_client import PerplexityClient
+    from src.integrations.openrouter_client import OpenRouterClient
+    from src.utils.template_loader import get_template_for_document_type
+    
     context_args = " ".join(context.args)
     if not context_args:
-        await update.message.reply_text("⚠️ Por favor, especifica el tipo y hechos.\nEjemplo: /demanda despido Despido improcedente de Juan")
+        await update.message.reply_text("⚠️ Por favor, describe los hechos del caso.\nEjemplo: /demanda La empresa ha modificado mi turno sin previo aviso")
         return
 
     user = update.effective_user.first_name
     
-    # Define steps for progress tracking
+    # Define NEW steps for progress tracking
     steps = [
         "Initialization",
-        "Drafting",
+        "Research",           # Perplexity research
+        "Document Generation", # OpenRouter template filling
         "Notion Entry",
         "Drive Structure",
-        "Perplexity Check",
-        "Refinement",
         "Docs Creation",
         "Finalization"
     ]
@@ -477,13 +491,23 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def refresh_progress():
         await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
 
+    # Initialize clients
+    pplx_client = PerplexityClient()
+    openrouter_client = OpenRouterClient()
+
     try:
-        # 1. Initialization (Generate ID & Title)
+        # 1. Initialization (Generate ID & Load Template)
         tracker.start_step("Initialization")
         await refresh_progress()
         try:
             last_id = notion.get_last_case_id("J")
             case_id = generate_case_id("J", last_id)
+            
+            # Load demanda template
+            template = get_template_for_document_type("demanda")
+            if not template:
+                raise ValueError("No se pudo cargar la plantilla de demanda")
+            
             tracker.complete_step("Initialization")
             await refresh_progress()
         except Exception as e:
@@ -492,27 +516,47 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Initialization", e)
             raise e
 
-        # 2. Drafting (AI Analysis & Draft)
-        tracker.start_step("Drafting")
+        # 2. Research (Perplexity - legal grounds)
+        tracker.start_step("Research")
         await refresh_progress()
-        agent = agent_orchestrator.get_agent_for_command("/demanda")
         try:
-            ai_result = await agent.generate_structured_draft_with_retry(context_args)
-            summary = ai_result.get("summary", "Sin Título")
-            draft_content = ai_result.get("content", "")
+            research = await pplx_client.research_case(context_args, document_type="demanda")
+            if not research:
+                raise ValueError("Perplexity no pudo completar la investigación jurídica")
+            tracker.complete_step("Research")
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Research")
+            await refresh_progress()
+            rollback.trigger_failure("Research", e)
+            raise e
+
+        # 3. Document Generation (OpenRouter - fill template)
+        tracker.start_step("Document Generation")
+        await refresh_progress()
+        try:
+            draft_content = await openrouter_client.generate_from_template(
+                template=template,
+                context=context_args,
+                research=research
+            )
+            if not draft_content or len(draft_content) < 500:
+                raise ValueError("El documento generado es demasiado corto o vacío")
             
+            # Generate summary from first 100 chars of context
+            summary = context_args[:80].replace('\n', ' ') + "..." if len(context_args) > 80 else context_args
             safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
             full_title = f"{case_id} - {safe_summary}"
             
-            tracker.complete_step("Drafting")
+            tracker.complete_step("Document Generation")
             await refresh_progress()
         except Exception as e:
-            tracker.fail_step("Drafting")
+            tracker.fail_step("Document Generation")
             await refresh_progress()
-            rollback.trigger_failure("Drafting", e)
+            rollback.trigger_failure("Document Generation", e)
             raise e
 
-        # 3. Notion Entry
+        # 4. Notion Entry
         tracker.start_step("Notion Entry")
         await refresh_progress()
         try:
@@ -535,7 +579,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Notion Entry", e)
             raise e
 
-        # 4. Drive Structure (Drive)
+        # 5. Drive Structure
         tracker.start_step("Drive Structure")
         await refresh_progress()
         try:
@@ -556,34 +600,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Drive Structure", e)
             raise e
 
-        # 5. Perplexity Check
-        tracker.start_step("Perplexity Check")
-        await refresh_progress()
-        try:
-            verification_feedback = await agent.verify_draft_content(draft_content)
-            tracker.complete_step("Perplexity Check")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Perplexity Check")
-            await refresh_progress()
-            rollback.trigger_failure("Perplexity Check", e)
-            raise e
-
-        # 6. Refinement
-        tracker.start_step("Refinement")
-        await refresh_progress()
-        try:
-            if verification_feedback:
-                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
-            tracker.complete_step("Refinement")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Refinement")
-            await refresh_progress()
-            rollback.trigger_failure("Refinement", e)
-            raise e
-
-        # 7. Docs Creation
+        # 6. Docs Creation
         tracker.start_step("Docs Creation")
         await refresh_progress()
         try:
@@ -600,7 +617,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Docs Creation", e)
             raise e
 
-        # 8. Finalization
+        # 7. Finalization
         tracker.start_step("Finalization")
         await refresh_progress()
         try:
@@ -630,7 +647,10 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
 
     except Exception as e:
-         # Mark current pending step as failed
+        import logging
+        logging.getLogger(__name__).error(f"demanda_handler failed: {e}", exc_info=True)
+        
+        # Mark current pending step as failed
         for s in tracker.steps:
             if tracker.status[s] == "in_progress" or tracker.status[s] == "pending":
                 tracker.fail_step(s)
