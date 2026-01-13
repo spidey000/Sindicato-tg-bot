@@ -49,8 +49,10 @@ Flujo de Trabajo Refinado:
 | /denuncia [contexto] | Grupo/Privado | Crea expediente ITSS + Carpeta + Doc. |
 | /demanda [contexto] | Grupo/Privado | Crea expediente Judicial + Carpeta + Doc. |
 | /email [contexto] | Grupo/Privado | Crea borrador de comunicación a RRHH. |
-| /update | Privado | Despliega lista de casos abiertos para editar (Feature K). |
+| /update | Privado | Despliega lista de casos abiertos del usuario para editar. |
 | /status [id] | Grupo | Informa al equipo de cómo va un caso (ej. "Enviado a Inspección"). |
+| /stop | Privado | Finaliza la sesión de edición activa actual. |
+| /admin | Privado | **Reservado para futura funcionalidad.** No tiene acción definida. |
 6. Próximos Pasos de Configuración (Roadmap)
 
 * Definición de Prompts (Agentes): Diseñar el "carácter" de la IA para que las denuncias suenen profesionales y citen la normativa correcta.
@@ -756,6 +758,29 @@ def should_notify_group(event_type: str, case: Case) -> bool:
     
     return event_type in PUBLIC_EVENTS
 ```
+
+### 2.5 Interfaz de Mensaje Único y Gestión de Sesión
+
+Para mantener una experiencia de usuario limpia y evitar la saturación del chat, el bot operará bajo un paradigma de "mensaje único editable".
+
+- **Mensaje Persistente**: Al ejecutar un comando que inicia una operación (ej. `/denuncia`), el bot enviará una respuesta inicial. Este mensaje será la única fuente de verdad para esa operación.
+- **Edición en el Lugar**: Todos los estados subsiguientes (reintentos, progreso, éxito, fracaso) se comunicarán editando este mensaje original. El bot debe almacenar el `message_id` de esta respuesta para poder modificarla.
+- **Gestión de Sesión Activa**: En el chat privado, el bot solo puede gestionar un caso en "Modo Edición" a la vez.
+  - Si un delegado intenta ejecutar un nuevo comando mientras hay una sesión activa, el bot no cambiará de contexto.
+  - En su lugar, el bot advertirá al usuario con el mensaje: "⚠️ Tienes una sesión de edición activa. Por favor, usa `/stop` para finalizarla antes de iniciar una nueva tarea." Este aviso se repetirá indefinidamente ante nuevos intentos.
+
+### 2.6 Comando de Sesión: `/stop`
+
+- **Ubicación**: Solo en chat privado.
+- **Acción**: Finaliza inmediatamente la sesión de edición activa, liberando al bot para aceptar nuevos comandos. Esta acción no genera ningún mensaje de confirmación o resumen; es una operación silenciosa que resetea el estado de la sesión del usuario a `IDLE`.
+
+### 2.7 Fiabilidad Transaccional: Rollback y Reintentos
+
+La creación de un expediente es una transacción atómica. El sistema debe garantizar la consistencia de los datos o un fallo limpio.
+
+- **Principio de "Todo o Nada"**: Si cualquiera de los pasos críticos en la creación de un caso falla (creación en Notion, carpeta en Drive, documento en Docs), el sistema debe ejecutar un **rollback completo**. Todas las entidades creadas previamente para esa operación (ej. la página de Notion si la creación de la carpeta de Drive falló) serán eliminadas.
+- **Mecanismo de Reintento**: Ante un fallo en una operación de API, el sistema no fallará inmediatamente. Intentará la operación fallida **3 veces** antes de declararla un fracaso y proceder al rollback. Durante este período, el mensaje principal del bot se editará para notificar al usuario (ej. "Error de conexión, reintentando...").
+- **Reporte de Errores Detallado**: Si todos los reintentos fallan y el rollback se completa, el mensaje principal del bot se editará para mostrar un estado de fallo final. Este mensaje incluirá el **error técnico raw** devuelto por el servicio que causó el fallo (ej. la respuesta de error de la API de Google Drive), para facilitar el diagnóstico.
 
 
 ***
