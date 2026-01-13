@@ -1,0 +1,8 @@
+{
+  "track_id": "qwen_json_fix_test_20260110",
+  "type": "chore",
+  "status": "new",
+  "created_at": "2026-01-10T00:00:00Z",
+  "updated_at": "2026-01-10T00:00:00Z",
+  "description": "i want to confirm the qwen json fixing. call the draft, check for json output if not then call the qwen json fix and check the output"
+}

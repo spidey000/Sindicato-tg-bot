@@ -24,7 +24,7 @@ class TestProgressUpdates(unittest.IsolatedAsyncioTestCase):
         
         mock_agent = MagicMock()
         mock_orch.get_agent_for_command.return_value = mock_agent
-        mock_agent.generate_structured_draft_with_retry.return_value = {"summary": "S", "content": "This content is definitely long enough to pass the validation check which requires more than fifty characters."}
+        mock_agent.generate_structured_draft_with_retry = AsyncMock(return_value={"summary": "S", "content": "This content is definitely long enough to pass the validation check which requires more than fifty characters."})
         mock_agent.verify_draft_content = AsyncMock(return_value=None)
         
         # Ensure external services are mocked as active
@@ -37,34 +37,34 @@ class TestProgressUpdates(unittest.IsolatedAsyncioTestCase):
         await denuncia_handler(update, context)
         
         # Verify update_progress_message calls
-        # We expect 14 calls (7 steps * 2 updates each: pending + completed)
-        self.assertEqual(mock_update_progress.call_count, 14)
+        # We expect 16 calls (8 steps * 2 updates each: pending + completed)
+        self.assertEqual(mock_update_progress.call_count, 16)
         
         # Verify the content of some calls to ensure status changes from pending to completed
-        # Call 1: Drafting -> pending
+        # Call 1: Initialization -> in_progress
         args1 = mock_update_progress.call_args_list[0][0]
         steps_status1 = args1[3]
-        self.assertEqual(steps_status1[0], ["Drafting", "pending"])
+        self.assertEqual(steps_status1[0][:2], ["Initialization", "in_progress"])
 
-        # Call 2: Drafting -> completed
+        # Call 2: Initialization -> completed
         args2 = mock_update_progress.call_args_list[1][0]
         steps_status2 = args2[3]
-        self.assertEqual(steps_status2[0], ["Drafting", "completed"])
+        self.assertEqual(steps_status2[0][:2], ["Initialization", "completed"])
         
-        # Call 3: Initialization -> pending
+        # Call 3: Drafting -> in_progress
         args3 = mock_update_progress.call_args_list[2][0]
         steps_status3 = args3[3]
-        self.assertEqual(steps_status3[1], ["Initialization", "pending"])
+        self.assertEqual(steps_status3[1][:2], ["Drafting", "in_progress"])
 
-        # Call 4: Initialization -> completed
+        # Call 4: Drafting -> completed
         args4 = mock_update_progress.call_args_list[3][0]
         steps_status4 = args4[3]
-        self.assertEqual(steps_status4[1], ["Initialization", "completed"])
+        self.assertEqual(steps_status4[1][:2], ["Drafting", "completed"])
         
         # Call 14: Docs Creation -> completed
         args14 = mock_update_progress.call_args_list[13][0]
         steps_status14 = args14[3]
-        self.assertEqual(steps_status14[6], ["Docs Creation", "completed"])
+        self.assertEqual(steps_status14[6][:2], ["Docs Creation", "completed"])
 
     @patch("src.middleware.AUTHORIZED_USERS", [123])
     @patch("src.handlers.send_progress_message")
@@ -99,7 +99,7 @@ class TestProgressUpdates(unittest.IsolatedAsyncioTestCase):
         #         item[1] = "failed"
         #         break
         
-        self.assertEqual(last_steps_status[0], ["Drafting", "failed"])
+        self.assertEqual(last_steps_status[1], ["Drafting", "failed", None])
 
 if __name__ == "__main__":
     unittest.main()

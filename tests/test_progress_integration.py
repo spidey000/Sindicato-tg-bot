@@ -23,7 +23,7 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
         mock_send_prog.return_value = 999
         
         mock_agent = MagicMock()
-        mock_agent.generate_structured_draft_with_retry.return_value = {"summary": "Test", "content": "Content"}
+        mock_agent.generate_structured_draft_with_retry = AsyncMock(return_value={"summary": "Test", "content": "Content"})
         mock_agent.verify_draft_content = AsyncMock(return_value=None)
         mock_orchestrator.get_agent_for_command.return_value = mock_agent
         

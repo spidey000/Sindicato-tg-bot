@@ -27,10 +27,10 @@ class TestE2ERollback(unittest.IsolatedAsyncioTestCase):
         
         # Mock Agent
         mock_agent = MagicMock()
-        mock_agent.generate_structured_draft_with_retry.return_value = {
+        mock_agent.generate_structured_draft_with_retry = AsyncMock(return_value={
             "summary": "Summary",
             "content": "This is a long content to pass validation check > 50 chars."
-        }
+        })
         mock_orchestrator.get_agent_for_command.return_value = mock_agent
         
         # Mock Notion success
@@ -52,7 +52,7 @@ class TestE2ERollback(unittest.IsolatedAsyncioTestCase):
         reply_args = update.message.reply_text.call_args_list
         last_reply = reply_args[-1].args[0]
         
-        self.assertIn("Error Crítico en 'File Structure'", last_reply)
+        self.assertIn("Error Crítico en 'Drive Structure'", last_reply)
         self.assertIn("Drive API Error", last_reply)
         self.assertIn("Revirtiendo cambios: Página de Notion eliminada", last_reply)
 

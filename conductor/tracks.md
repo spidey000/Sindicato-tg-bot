@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-## [x] Track: i want to confirm the qwen json fixing. call the draft, check for json output if not then call the qwen json fix and check the output
-*Link: [./conductor/tracks/qwen_json_fix_test_20260110/](./conductor/tracks/qwen_json_fix_test_20260110/)*
+## [~] Track: Fix the qwen call by using `response_format={'type': 'json_object'}`
+*Link: [./conductor/tracks/qwen_json_object_fix_20260110/](./conductor/tracks/qwen_json_object_fix_20260110/)*

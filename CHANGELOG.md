@@ -15,6 +15,9 @@
 - Updated `OpenRouterClient` to pass `response_format` to the API.
 
 ### Fixed
+- **Async Execution**: Fixed a critical `RuntimeWarning` where `AgentBase` coroutines (`generate_structured_draft_with_retry`, `refine_draft`, `verify_draft`) were called without `await` in `src/handlers.py`, causing the bot to fail silently or produce warnings.
+- **Test Suite**: Updated `test_agent_llm_integration.py` to correctly test async agent methods, resolving `RuntimeWarning` failures in the test suite. Fixed assertions in `test_progress_updates.py` and `test_e2e_rollback.py` to match current implementation.
+- **Configuration**: Updated `.env` with the correct Telegram Bot Token.
 - **Google Docs**: Fixed a potential error when inserting empty content into a document.
 - **Telegram UI**: Handled "Message is not modified" `BadRequest` errors in `update_progress_message` to prevent unnecessary log noise.
 

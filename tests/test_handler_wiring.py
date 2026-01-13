@@ -26,10 +26,10 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
         # Mock Agent
         mock_agent = MagicMock()
         # Mock granular methods
-        mock_agent.generate_structured_draft_with_retry.return_value = {
+        mock_agent.generate_structured_draft_with_retry = AsyncMock(return_value={
             "summary": "Resumen IA",
             "content": "Contenido IA que es suficientemente largo para pasar la validación de cincuenta caracteres."
-        }
+        })
         mock_agent.verify_draft_content = AsyncMock(return_value=None) 
         mock_agent.refine_draft_with_feedback.return_value = "Contenido IA Refinado"
         

@@ -157,7 +157,7 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await refresh_progress()
         agent = agent_orchestrator.get_agent_for_command("/denuncia")
         try:
-            ai_result = agent.generate_structured_draft_with_retry(context_args)
+            ai_result = await agent.generate_structured_draft_with_retry(context_args)
             summary = ai_result.get("summary", "Sin Título")
             draft_content = ai_result.get("content", "")
             
@@ -235,7 +235,7 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await refresh_progress()
         try:
             if verification_feedback:
-                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+                draft_content = await agent.refine_draft_with_feedback(draft_content, verification_feedback)
             tracker.complete_step("Refinement")
             await refresh_progress()
         except Exception as e:
@@ -427,7 +427,7 @@ async def private_message_handler(update: Update, context: ContextTypes.DEFAULT_
                  current_content = "" # Should not happen if doc exists
                  
              # Refine
-             new_content = agent.refine_draft(current_content, text)
+             new_content = await agent.refine_draft(current_content, text)
              
              # Update Doc
              success = docs.update_document_content(doc_id, new_content)
@@ -497,7 +497,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await refresh_progress()
         agent = agent_orchestrator.get_agent_for_command("/demanda")
         try:
-            ai_result = agent.generate_structured_draft_with_retry(context_args)
+            ai_result = await agent.generate_structured_draft_with_retry(context_args)
             summary = ai_result.get("summary", "Sin Título")
             draft_content = ai_result.get("content", "")
             
@@ -574,7 +574,7 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await refresh_progress()
         try:
             if verification_feedback:
-                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+                draft_content = await agent.refine_draft_with_feedback(draft_content, verification_feedback)
             tracker.complete_step("Refinement")
             await refresh_progress()
         except Exception as e:
@@ -692,7 +692,7 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await refresh_progress()
         agent = agent_orchestrator.get_agent_for_command("/email")
         try:
-            ai_result = agent.generate_structured_draft_with_retry(context_args)
+            ai_result = await agent.generate_structured_draft_with_retry(context_args)
             summary = ai_result.get("summary", "Sin Título")
             draft_content = ai_result.get("content", "")
             
@@ -767,7 +767,7 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await refresh_progress()
         try:
             if verification_feedback:
-                draft_content = agent.refine_draft_with_feedback(draft_content, verification_feedback)
+                draft_content = await agent.refine_draft_with_feedback(draft_content, verification_feedback)
             tracker.complete_step("Refinement")
             await refresh_progress()
         except Exception as e:

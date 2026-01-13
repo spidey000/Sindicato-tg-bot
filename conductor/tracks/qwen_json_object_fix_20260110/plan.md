@@ -13,8 +13,8 @@
 - [x] Task: Modify `src/integrations/openrouter_client.py` to ensure that `_repair_json` explicitly passes `response_format={"type": "json_object"}` to its `_make_request` call.
 - [ ] Task: Conductor - User Manual Verification 'Implement the Fix for Qwen `json_object`' (Protocol in workflow.md)
 
-## Phase 3: Verify the Solution and Regression
-- [ ] Task: Run the new `test_qwen_json_repair_response_format` and confirm it now passes (i.e., `_make_request` in repair call receives `response_format={"type": "json_object"}`).
-- [ ] Task: Mock `OpenRouterClient._make_request` (for the repair call) to return a known *valid* JSON string, and assert that the final output of `OpenRouterClient.completion` is valid JSON.
-- [ ] Task: Run existing regression tests (`test_json_forcing_failure` and `test_qwen_json_fixing_passing_case`) to ensure no regressions are introduced.
+## Phase 3: Verify the Solution and Regression [checkpoint: ce6adc6]
+- [x] Task: Run the new `test_qwen_json_repair_response_format` and confirm it now passes (i.e., `_make_request` in repair call receives `response_format={"type": "json_object"}`).
+- [x] Task: Mock `OpenRouterClient._make_request` (for the repair call) to return a known *valid* JSON string, and assert that the final output of `OpenRouterClient.completion` is valid JSON.
+- [x] Task: Run existing regression tests (`test_json_forcing_failure` and `test_qwen_json_fixing_passing_case`) to ensure no regressions are introduced.
 - [ ] Task: Conductor - User Manual Verification 'Verify the Solution and Regression' (Protocol in workflow.md)

@@ -1,0 +1,8 @@
+{
+  "track_id": "fix_openrouter_json_20260110",
+  "type": "bug",
+  "status": "new",
+  "created_at": "2026-01-10T00:00:00Z",
+  "updated_at": "2026-01-10T00:00:00Z",
+  "description": "to avoid openrouter call failiures remove the json parameter forcing in the call"
+}
