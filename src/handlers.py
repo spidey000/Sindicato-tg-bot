@@ -12,6 +12,9 @@ from datetime import datetime
 import io
 
 # Initialize clients
+import logging
+logger = logging.getLogger(__name__)
+
 notion = DelegadoNotionClient()
 drive = DelegadoDriveClient()
 docs = DelegadoDocsClient()
@@ -113,17 +116,20 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Por favor, describe los hechos para iniciar la denuncia.\nEjemplo: /denuncia Falta de EPIs en el almacén")
         return
 
+    from src.integrations.perplexity_client import PerplexityClient
+    from src.integrations.openrouter_client import OpenRouterClient
+    from src.template_loader import get_template_for_document_type
+
     user = update.effective_user.first_name
     
-    # Define steps for progress tracking according to SPEC
+    # Define NEW steps for progress tracking
     steps = [
         "Initialization",
-        "Drafting",
-        "Notion Entry",
+        "Research",           # Perplexity research
+        "Document Generation", # OpenRouter template filling
         "Drive Structure",
-        "Perplexity Check",
-        "Refinement",
         "Docs Creation",
+        "Notion Entry",
         "Finalization"
     ]
     tracker = ProgressTracker(steps)
@@ -136,14 +142,23 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def refresh_progress():
         await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
 
+    # Initialize clients
+    pplx_client = PerplexityClient()
+    openrouter_client = OpenRouterClient()
+
     try:
-        # 1. Initialization (Generate ID & Title)
+        # 1. Initialization (Generate ID & Load Template)
         tracker.start_step("Initialization")
         await refresh_progress()
         try:
             last_id = notion.get_last_case_id("D")
             case_id = generate_case_id("D", last_id)
-            # We'll update the title once we have the AI summary, but we need an ID now.
+            
+            # Load template
+            template = get_template_for_document_type("denuncia")
+            if not template:
+                raise ValueError("No se pudo cargar la plantilla de denuncia ITSS")
+            
             tracker.complete_step("Initialization")
             await refresh_progress()
         except Exception as e:
@@ -152,27 +167,97 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Initialization", e)
             raise e
 
-        # 2. Drafting (AI Analysis & Draft)
-        tracker.start_step("Drafting")
+        # 2. Research (Perplexity)
+        tracker.start_step("Research")
         await refresh_progress()
-        agent = agent_orchestrator.get_agent_for_command("/denuncia")
         try:
-            ai_result = await agent.generate_structured_draft_with_retry(context_args)
-            summary = ai_result.get("summary", "Sin Título")
-            draft_content = ai_result.get("content", "")
+            research = await pplx_client.research_case(context_args, document_type="denuncia")
+            if not research:
+                raise ValueError("Perplexity no pudo completar la investigación")
+            tracker.complete_step("Research")
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Research")
+            await refresh_progress()
+            rollback.trigger_failure("Research", e)
+            raise e
+
+        # 3. Document Generation
+        tracker.start_step("Document Generation")
+        await refresh_progress()
+        try:
+            draft_content = await openrouter_client.generate_from_template(
+                template=template,
+                context=context_args,
+                research=research
+            )
+            if not draft_content or len(draft_content) < 200:
+                raise ValueError("El documento generado es demasiado corto")
             
+            summary = context_args[:80].replace('\n', ' ') + "..." if len(context_args) > 80 else context_args
             safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
             full_title = f"{case_id} - {safe_summary}"
             
-            tracker.complete_step("Drafting")
+            tracker.complete_step("Document Generation")
             await refresh_progress()
         except Exception as e:
-            tracker.fail_step("Drafting")
+            tracker.fail_step("Document Generation")
             await refresh_progress()
-            rollback.trigger_failure("Drafting", e)
+            rollback.trigger_failure("Document Generation", e)
             raise e
 
-        # 3. Notion Entry
+        # 4. Drive Structure
+        tracker.start_step("Drive Structure")
+        await refresh_progress()
+        try:
+            drive_link, folder_id = None, None
+            if not drive.service:
+                 logger.warning("Drive service not initialized. Skipping Drive creation.")
+                 tracker.fail_step("Drive Structure") # Mark as failed/skipped for visibility
+            else:
+                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="denuncia")
+                if folder_id:
+                    rollback.set_drive_folder(folder_id)
+                    drive.create_subfolder(folder_id, "Pruebas")
+                    drive.create_subfolder(folder_id, "Respuestas")
+                    tracker.complete_step("Drive Structure")
+                else:
+                    raise ValueError("Falló la creación de la carpeta en Drive")
+            
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Drive Structure")
+            await refresh_progress()
+            rollback.trigger_failure("Drive Structure", e)
+            # We continue even if Drive fails, but step is marked failed
+            logger.error(f"Drive step failed: {e}")
+
+        # 5. Docs Creation
+        tracker.start_step("Docs Creation")
+        await refresh_progress()
+        try:
+            doc_link = None
+            if not docs.service:
+                logger.warning("Docs service not initialized. Skipping Doc creation.")
+                tracker.fail_step("Docs Creation")
+            elif not folder_id:
+                logger.warning("No Drive folder available. Skipping Doc creation.")
+                tracker.fail_step("Docs Creation")
+            else:
+                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+                if doc_link:
+                    tracker.complete_step("Docs Creation")
+                else:
+                    raise ValueError("Falló la creación del documento de Google")
+            
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Docs Creation")
+            await refresh_progress()
+            rollback.trigger_failure("Docs Creation", e)
+            logger.error(f"Docs step failed: {e}")
+
+        # 6. Notion Entry
         tracker.start_step("Notion Entry")
         await refresh_progress()
         try:
@@ -188,6 +273,19 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not notion_page_id:
                 raise ValueError("Falló la creación de la página en Notion")
             rollback.set_notion_page(notion_page_id)
+            
+            # Update links immediately
+            if drive_link or doc_link:
+                notion.update_page_links(notion_page_id, drive_link, doc_link)
+
+            # Append content blocks
+            try:
+                if research or draft_content:
+                    notion.append_content_blocks(notion_page_id, research, draft_content)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Failed to append content blocks: {e}")
+
             tracker.complete_step("Notion Entry")
             await refresh_progress()
         except Exception as e:
@@ -196,98 +294,32 @@ async def denuncia_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Notion Entry", e)
             raise e
 
-        # 4. Drive Structure (Drive Folder)
-        tracker.start_step("Drive Structure")
-        await refresh_progress()
-        try:
-            drive_link, folder_id = None, None
-            if drive.service:
-                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="denuncia")
-                if folder_id:
-                    rollback.set_drive_folder(folder_id)
-                    drive.create_subfolder(folder_id, "Pruebas")
-                    drive.create_subfolder(folder_id, "Respuestas")
-                else:
-                    raise ValueError("Falló la creación de la carpeta en Drive")
-            tracker.complete_step("Drive Structure")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Drive Structure")
-            await refresh_progress()
-            rollback.trigger_failure("Drive Structure", e)
-            raise e
-
-        # 5. Perplexity Check
-        tracker.start_step("Perplexity Check")
-        await refresh_progress()
-        try:
-            verification_feedback = await agent.verify_draft_content(draft_content)
-            tracker.complete_step("Perplexity Check")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Perplexity Check")
-            await refresh_progress()
-            rollback.trigger_failure("Perplexity Check", e)
-            raise e
-
-        # 6. Refinement (Final AI polishing)
-        tracker.start_step("Refinement")
-        await refresh_progress()
-        try:
-            if verification_feedback:
-                draft_content = await agent.refine_draft_with_feedback(draft_content, verification_feedback)
-            tracker.complete_step("Refinement")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Refinement")
-            await refresh_progress()
-            rollback.trigger_failure("Refinement", e)
-            raise e
-
-        # 7. Docs Creation (Google Doc)
-        tracker.start_step("Docs Creation")
-        await refresh_progress()
-        try:
-            doc_link = None
-            if folder_id and docs.service:
-                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
-                if not doc_link:
-                    raise ValueError("Falló la creación del documento de Google")
-            tracker.complete_step("Docs Creation")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Docs Creation")
-            await refresh_progress()
-            rollback.trigger_failure("Docs Creation", e)
-            raise e
-
-        # 8. Finalization
+        # 7. Finalization
         tracker.start_step("Finalization")
         await refresh_progress()
-        try:
-            if notion_page_id and (drive_link or doc_link):
-                notion.update_page_links(notion_page_id, drive_link, doc_link)
-            tracker.complete_step("Finalization")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Finalization")
-            await refresh_progress()
-            rollback.trigger_failure("Finalization", e)
-            raise e
+        tracker.complete_step("Finalization")
+        await refresh_progress()
 
         # Final Response
         response = f"✅ *EXPEDIENTE CREADO*\n\n📋 *ID:* `{case_id}`\n📂 *Tipo:* Denuncia ITSS\n📝 *Asunto:* {safe_summary}\n👤 *Responsable:* {user}\n\n"
         
         if notion_page_id: response += f"🔗 [Ver en Notion](https://notion.so/{notion_page_id.replace('-', '')})\n"
-        if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
-        if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+        
+        if drive_link:
+            response += f"📁 [Carpeta Drive]({drive_link})\n"
+        else:
+             response += "❌ Carpeta Drive\n"
+
+        if doc_link:
+            response += f"📄 [Borrador Doc]({doc_link})\n"
+        else:
+             response += "❌ Borrador Doc\n"
 
         bot_username = context.bot.username
         deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
         keyboard = [[InlineKeyboardButton("🔒 Continuar en Privado", url=deep_link)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # Replace or follow-up with final card
         await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
 
     except Exception as e:
@@ -427,7 +459,7 @@ async def private_message_handler(update: Update, context: ContextTypes.DEFAULT_
                  current_content = "" # Should not happen if doc exists
                  
              # Refine
-             new_content = await agent.refine_draft(current_content, text)
+             new_content = agent.refine_draft(current_content, text)
              
              # Update Doc
              success = docs.update_document_content(doc_id, new_content)
@@ -448,23 +480,37 @@ async def stop_editing_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 
 @restricted
 async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handler for the /demanda command."""
+    """
+    Handler for the /demanda command.
+    
+    NEW PIPELINE:
+    1. Initialization - Generate case ID
+    2. Research - Perplexity researches legal grounds (verbatim)
+    3. Document Generation - OpenRouter fills template with facts + research
+    4. Notion Entry - Create page
+    5. Drive Structure - Create folder
+    6. Docs Creation - Save document to Google Docs
+    7. Finalization - Link everything
+    """
+    from src.integrations.perplexity_client import PerplexityClient
+    from src.integrations.openrouter_client import OpenRouterClient
+    from src.template_loader import get_template_for_document_type
+    
     context_args = " ".join(context.args)
     if not context_args:
-        await update.message.reply_text("⚠️ Por favor, especifica el tipo y hechos.\nEjemplo: /demanda despido Despido improcedente de Juan")
+        await update.message.reply_text("⚠️ Por favor, describe los hechos del caso.\nEjemplo: /demanda La empresa ha modificado mi turno sin previo aviso")
         return
 
     user = update.effective_user.first_name
     
-    # Define steps for progress tracking
+    # Define NEW steps for progress tracking
     steps = [
         "Initialization",
-        "Drafting",
-        "Notion Entry",
+        "Research",           # Perplexity research
+        "Document Generation", # OpenRouter template filling
         "Drive Structure",
-        "Perplexity Check",
-        "Refinement",
         "Docs Creation",
+        "Notion Entry",       # Create page & dump content
         "Finalization"
     ]
     tracker = ProgressTracker(steps)
@@ -477,13 +523,23 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def refresh_progress():
         await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
 
+    # Initialize clients
+    pplx_client = PerplexityClient()
+    openrouter_client = OpenRouterClient()
+
     try:
-        # 1. Initialization (Generate ID & Title)
+        # 1. Initialization (Generate ID & Load Template)
         tracker.start_step("Initialization")
         await refresh_progress()
         try:
             last_id = notion.get_last_case_id("J")
             case_id = generate_case_id("J", last_id)
+            
+            # Load demanda template
+            template = get_template_for_document_type("demanda")
+            if not template:
+                raise ValueError("No se pudo cargar la plantilla de demanda")
+            
             tracker.complete_step("Initialization")
             await refresh_progress()
         except Exception as e:
@@ -492,27 +548,99 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Initialization", e)
             raise e
 
-        # 2. Drafting (AI Analysis & Draft)
-        tracker.start_step("Drafting")
+        # 2. Research (Perplexity - legal grounds)
+        tracker.start_step("Research")
         await refresh_progress()
-        agent = agent_orchestrator.get_agent_for_command("/demanda")
         try:
-            ai_result = await agent.generate_structured_draft_with_retry(context_args)
-            summary = ai_result.get("summary", "Sin Título")
-            draft_content = ai_result.get("content", "")
+            research = await pplx_client.research_case(context_args, document_type="demanda")
+            if not research:
+                raise ValueError("Perplexity no pudo completar la investigación jurídica")
+            tracker.complete_step("Research")
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Research")
+            await refresh_progress()
+            rollback.trigger_failure("Research", e)
+            raise e
+
+        # 3. Document Generation (OpenRouter - fill template)
+        tracker.start_step("Document Generation")
+        await refresh_progress()
+        try:
+            draft_content = await openrouter_client.generate_from_template(
+                template=template,
+                context=context_args,
+                research=research
+            )
+            if not draft_content or len(draft_content) < 500:
+                raise ValueError("El documento generado es demasiado corto o vacío")
             
+            # Generate summary from first 100 chars of context
+            summary = context_args[:80].replace('\n', ' ') + "..." if len(context_args) > 80 else context_args
             safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
             full_title = f"{case_id} - {safe_summary}"
             
-            tracker.complete_step("Drafting")
+            tracker.complete_step("Document Generation")
             await refresh_progress()
         except Exception as e:
-            tracker.fail_step("Drafting")
+            tracker.fail_step("Document Generation")
             await refresh_progress()
-            rollback.trigger_failure("Drafting", e)
+            rollback.trigger_failure("Document Generation", e)
             raise e
 
-        # 3. Notion Entry
+
+
+        # 4. Drive Structure
+        tracker.start_step("Drive Structure")
+        await refresh_progress()
+        try:
+            drive_link, folder_id = None, None
+            if not drive.service:
+                 logger.warning("Drive service not initialized. Skipping Drive creation.")
+                 tracker.fail_step("Drive Structure")
+            else:
+                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="demanda")
+                if folder_id:
+                    rollback.set_drive_folder(folder_id)
+                    drive.create_subfolder(folder_id, "Pruebas")
+                    drive.create_subfolder(folder_id, "Procedimiento")
+                    tracker.complete_step("Drive Structure")
+                else:
+                    raise ValueError("Falló la creación de la carpeta en Drive")
+            
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Drive Structure")
+            await refresh_progress()
+            rollback.trigger_failure("Drive Structure", e)
+            logger.error(f"Drive step failed: {e}")
+
+        # 5. Docs Creation
+        tracker.start_step("Docs Creation")
+        await refresh_progress()
+        try:
+            doc_link = None
+            if not docs.service:
+                logger.warning("Docs service not initialized. Skipping Doc creation.")
+                tracker.fail_step("Docs Creation")
+            elif not folder_id:
+                logger.warning("No Drive folder available. Skipping Doc creation.")
+                tracker.fail_step("Docs Creation")
+            else:
+                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+                if doc_link:
+                    tracker.complete_step("Docs Creation")
+                else:
+                    raise ValueError("Falló la creación del documento de Google")
+            
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Docs Creation")
+            await refresh_progress()
+            rollback.trigger_failure("Docs Creation", e)
+            logger.error(f"Docs step failed: {e}")
+
+        # 6. Notion Entry
         tracker.start_step("Notion Entry")
         await refresh_progress()
         try:
@@ -527,80 +655,30 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not notion_page_id:
                 raise ValueError("Falló la creación de la página en Notion")
             rollback.set_notion_page(notion_page_id)
+            
+            # Update links immediately since we have them
+            if drive_link or doc_link:
+                notion.update_page_links(notion_page_id, drive_link, doc_link)
+
+            # Append content blocks (Research & Draft)
+            try:
+                if research or draft_content:
+                    notion.append_content_blocks(notion_page_id, research, draft_content)
+            except Exception as e:
+                # Non-critical failure, log but don't stop
+                import logging
+                logging.getLogger(__name__).error(f"Failed to append content blocks: {e}")
+
             tracker.complete_step("Notion Entry")
             await refresh_progress()
+
         except Exception as e:
             tracker.fail_step("Notion Entry")
             await refresh_progress()
             rollback.trigger_failure("Notion Entry", e)
             raise e
 
-        # 4. Drive Structure (Drive)
-        tracker.start_step("Drive Structure")
-        await refresh_progress()
-        try:
-            drive_link, folder_id = None, None
-            if drive.service:
-                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="demanda")
-                if folder_id:
-                    rollback.set_drive_folder(folder_id)
-                    drive.create_subfolder(folder_id, "Pruebas")
-                    drive.create_subfolder(folder_id, "Procedimiento")
-                else:
-                    raise ValueError("Falló la creación de la carpeta en Drive")
-            tracker.complete_step("Drive Structure")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Drive Structure")
-            await refresh_progress()
-            rollback.trigger_failure("Drive Structure", e)
-            raise e
-
-        # 5. Perplexity Check
-        tracker.start_step("Perplexity Check")
-        await refresh_progress()
-        try:
-            verification_feedback = await agent.verify_draft_content(draft_content)
-            tracker.complete_step("Perplexity Check")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Perplexity Check")
-            await refresh_progress()
-            rollback.trigger_failure("Perplexity Check", e)
-            raise e
-
-        # 6. Refinement
-        tracker.start_step("Refinement")
-        await refresh_progress()
-        try:
-            if verification_feedback:
-                draft_content = await agent.refine_draft_with_feedback(draft_content, verification_feedback)
-            tracker.complete_step("Refinement")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Refinement")
-            await refresh_progress()
-            rollback.trigger_failure("Refinement", e)
-            raise e
-
-        # 7. Docs Creation
-        tracker.start_step("Docs Creation")
-        await refresh_progress()
-        try:
-            doc_link = None
-            if folder_id and docs.service:
-                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
-                if not doc_link:
-                    raise ValueError("Falló la creación del documento de Google")
-            tracker.complete_step("Docs Creation")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Docs Creation")
-            await refresh_progress()
-            rollback.trigger_failure("Docs Creation", e)
-            raise e
-
-        # 8. Finalization
+        # 7. Finalization
         tracker.start_step("Finalization")
         await refresh_progress()
         try:
@@ -618,8 +696,16 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = f"✅ *EXPEDIENTE JUDICIAL CREADO*\n\n📋 *ID:* `{case_id}`\n⚖️ *Tipo:* Demanda\n📝 *Asunto:* {safe_summary}\n"
         
         if notion_page_id: response += f"🔗 [Ver en Notion](https://notion.so/{notion_page_id.replace('-', '')})\n"
-        if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
-        if doc_link: response += f"📄 [Borrador Doc]({doc_link})\n"
+        
+        if drive_link:
+            response += f"📁 [Carpeta Drive]({drive_link})\n"
+        else:
+            response += "❌ Carpeta Drive\n"
+
+        if doc_link:
+            response += f"📄 [Borrador Doc]({doc_link})\n"
+        else:
+            response += "❌ Borrador Doc\n"
 
         bot_username = context.bot.username
         deep_link = f"https://t.me/{bot_username}?start=case_{case_id}"
@@ -630,7 +716,10 @@ async def demanda_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
 
     except Exception as e:
-         # Mark current pending step as failed
+        import logging
+        logging.getLogger(__name__).error(f"demanda_handler failed: {e}", exc_info=True)
+        
+        # Mark current pending step as failed
         for s in tracker.steps:
             if tracker.status[s] == "in_progress" or tracker.status[s] == "pending":
                 tracker.fail_step(s)
@@ -649,17 +738,20 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Por favor, indica el asunto y el mensaje.\nEjemplo: /email Solicitud Vacaciones Pedir el calendario anual")
         return
 
+    from src.integrations.perplexity_client import PerplexityClient
+    from src.integrations.openrouter_client import OpenRouterClient
+    from src.template_loader import get_template_for_document_type
+
     user = update.effective_user.first_name
     
-    # Define steps for progress tracking
+    # Define NEW steps for progress tracking
     steps = [
         "Initialization",
-        "Drafting",
-        "Notion Entry",
+        "Research",           # Perplexity research
+        "Document Generation", # OpenRouter template filling
         "Drive Structure",
-        "Perplexity Check",
-        "Refinement",
         "Docs Creation",
+        "Notion Entry",
         "Finalization"
     ]
     tracker = ProgressTracker(steps)
@@ -672,6 +764,10 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async def refresh_progress():
         await update_progress_message(context, chat_id, message_id, tracker.get_steps_status())
 
+    # Initialize clients
+    pplx_client = PerplexityClient()
+    openrouter_client = OpenRouterClient()
+
     try:
         # 1. Initialization
         tracker.start_step("Initialization")
@@ -679,6 +775,12 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             last_id = notion.get_last_case_id("E")
             case_id = generate_case_id("E", last_id)
+            
+            # Load template
+            template = get_template_for_document_type("email")
+            if not template:
+                raise ValueError("No se pudo cargar la plantilla de email")
+
             tracker.complete_step("Initialization")
             await refresh_progress()
         except Exception as e:
@@ -687,27 +789,98 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Initialization", e)
             raise e
 
-        # 2. Drafting (AI Analysis & Draft)
-        tracker.start_step("Drafting")
+        # 2. Research (Perplexity)
+        tracker.start_step("Research")
         await refresh_progress()
-        agent = agent_orchestrator.get_agent_for_command("/email")
         try:
-            ai_result = await agent.generate_structured_draft_with_retry(context_args)
-            summary = ai_result.get("summary", "Sin Título")
-            draft_content = ai_result.get("content", "")
+            research = await pplx_client.research_case(context_args, document_type="email")
+            if not research:
+                # For email, maybe research is optional? But Unified Flow says it's step 2.
+                # If Perplexity fails to find relevant laws, it returns something.
+                # If it errors, we catch it.
+                raise ValueError("Perplexity no pudo completar la investigación")
+            tracker.complete_step("Research")
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Research")
+            await refresh_progress()
+            rollback.trigger_failure("Research", e)
+            raise e
+
+        # 3. Document Generation
+        tracker.start_step("Document Generation")
+        await refresh_progress()
+        try:
+            draft_content = await openrouter_client.generate_from_template(
+                template=template,
+                context=context_args,
+                research=research
+            )
+            if not draft_content or len(draft_content) < 100:
+                raise ValueError("El borrador generado es demasiado corto")
             
+            summary = context_args[:80].replace('\n', ' ') + "..." if len(context_args) > 80 else context_args
             safe_summary = re.sub(r'[<>:"/\\|?*]', '', summary).strip()
             full_title = f"{case_id} - {safe_summary}"
             
-            tracker.complete_step("Drafting")
+            tracker.complete_step("Document Generation")
             await refresh_progress()
         except Exception as e:
-            tracker.fail_step("Drafting")
+            tracker.fail_step("Document Generation")
             await refresh_progress()
-            rollback.trigger_failure("Drafting", e)
+            rollback.trigger_failure("Document Generation", e)
             raise e
 
-        # 3. Notion Entry
+        # 4. Drive Structure
+        tracker.start_step("Drive Structure")
+        await refresh_progress()
+        try:
+            drive_link, folder_id = None, None
+            if not drive.service:
+                 logger.warning("Drive service not initialized. Skipping Drive creation.")
+                 tracker.fail_step("Drive Structure")
+            else:
+                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="email")
+                if folder_id:
+                    rollback.set_drive_folder(folder_id)
+                    tracker.complete_step("Drive Structure")
+                else:
+                    raise ValueError("Falló la creación de la carpeta en Drive")
+            
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Drive Structure")
+            await refresh_progress()
+            rollback.trigger_failure("Drive Structure", e)
+            logger.error(f"Drive step failed: {e}")
+
+        # 5. Docs Creation
+        tracker.start_step("Docs Creation")
+        await refresh_progress()
+        try:
+            doc_link = None
+            if not docs.service:
+                logger.warning("Docs service not initialized. Skipping Doc creation.")
+                tracker.fail_step("Docs Creation")
+            elif not folder_id:
+                logger.warning("No Drive folder available. Skipping Doc creation.")
+                tracker.fail_step("Docs Creation")
+            else:
+                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
+                if doc_link:
+                    tracker.complete_step("Docs Creation")
+                else:
+                    raise ValueError("Falló la creación del documento de Google")
+            
+            await refresh_progress()
+        except Exception as e:
+            tracker.fail_step("Docs Creation")
+            await refresh_progress()
+            rollback.trigger_failure("Docs Creation", e)
+            logger.error(f"Docs step failed: {e}")
+
+
+        # 6. Notion Entry
         tracker.start_step("Notion Entry")
         await refresh_progress()
         try:
@@ -722,6 +895,19 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not notion_page_id:
                 raise ValueError("Falló la creación de la página en Notion")
             rollback.set_notion_page(notion_page_id)
+            
+            # Update links immediately
+            if drive_link or doc_link:
+                notion.update_page_links(notion_page_id, drive_link, doc_link)
+
+            # Append content blocks
+            try:
+                if research or draft_content:
+                    notion.append_content_blocks(notion_page_id, research, draft_content)
+            except Exception as e:
+                 import logging
+                 logging.getLogger(__name__).error(f"Failed to append content blocks: {e}")
+
             tracker.complete_step("Notion Entry")
             await refresh_progress()
         except Exception as e:
@@ -730,88 +916,25 @@ async def email_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rollback.trigger_failure("Notion Entry", e)
             raise e
 
-        # 4. Drive Structure
-        tracker.start_step("Drive Structure")
-        await refresh_progress()
-        try:
-            drive_link, folder_id = None, None
-            if drive.service:
-                drive_link, folder_id = drive.create_case_folder(case_id, safe_summary, case_type="email")
-                if folder_id:
-                    rollback.set_drive_folder(folder_id)
-                else:
-                    raise ValueError("Falló la creación de la carpeta en Drive")
-            tracker.complete_step("Drive Structure")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Drive Structure")
-            await refresh_progress()
-            rollback.trigger_failure("Drive Structure", e)
-            raise e
-
-        # 5. Perplexity Check
-        tracker.start_step("Perplexity Check")
-        await refresh_progress()
-        try:
-            verification_feedback = await agent.verify_draft_content(draft_content)
-            tracker.complete_step("Perplexity Check")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Perplexity Check")
-            await refresh_progress()
-            rollback.trigger_failure("Perplexity Check", e)
-            raise e
-
-        # 6. Refinement
-        tracker.start_step("Refinement")
-        await refresh_progress()
-        try:
-            if verification_feedback:
-                draft_content = await agent.refine_draft_with_feedback(draft_content, verification_feedback)
-            tracker.complete_step("Refinement")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Refinement")
-            await refresh_progress()
-            rollback.trigger_failure("Refinement", e)
-            raise e
-
-        # 7. Docs Creation
-        tracker.start_step("Docs Creation")
-        await refresh_progress()
-        try:
-            doc_link = None
-            if folder_id and docs.service:
-                doc_link = docs.create_draft_document(full_title, draft_content, folder_id)
-                if not doc_link:
-                    raise ValueError("Falló la creación del documento de Google")
-            tracker.complete_step("Docs Creation")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Docs Creation")
-            await refresh_progress()
-            rollback.trigger_failure("Docs Creation", e)
-            raise e
-
-        # 8. Finalization
+        # 7. Finalization
         tracker.start_step("Finalization")
         await refresh_progress()
-        try:
-            if notion_page_id and (drive_link or doc_link):
-                notion.update_page_links(notion_page_id, drive_link, doc_link)
-            tracker.complete_step("Finalization")
-            await refresh_progress()
-        except Exception as e:
-            tracker.fail_step("Finalization")
-            await refresh_progress()
-            rollback.trigger_failure("Finalization", e)
-            raise e
+        tracker.complete_step("Finalization")
+        await refresh_progress()
 
         response = f"✅ *COMUNICACIÓN CREADA*\n\n📋 *ID:* `{case_id}`\n📧 *Tipo:* Email RRHH\n📝 *Asunto:* {safe_summary}\n"
         
         if notion_page_id: response += f"🔗 [Ver en Notion](https://notion.so/{notion_page_id.replace('-', '')})\n"
-        if drive_link: response += f"📁 [Carpeta Drive]({drive_link})\n"
-        if doc_link: response += f"📄 [Borrador]({doc_link})\n"
+        
+        if drive_link:
+            response += f"📁 [Carpeta Drive]({drive_link})\n"
+        else:
+             response += "❌ Carpeta Drive\n"
+
+        if doc_link:
+            response += f"📄 [Borrador Doc]({doc_link})\n"
+        else:
+             response += "❌ Borrador Doc\n"
 
         await update.message.reply_text(response, parse_mode='Markdown')
 

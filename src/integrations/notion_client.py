@@ -320,6 +320,71 @@ class DelegadoNotionClient:
             return False
 
 
+    def append_content_blocks(self, page_id: str, research: str, draft: str) -> bool:
+        """
+        Appends Research and Draft content as toggle blocks to the Notion page.
+        """
+        if not self.client:
+            return False
+
+        children = []
+
+        # Helper to create text blocks (chunked)
+        def create_chunks(text):
+            return [text[i:i+2000] for i in range(0, len(text), 2000)]
+
+        # 1. Research Toggle
+        if research:
+            research_chunks = create_chunks(research)
+            research_children = [
+                {
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": chunk}}]
+                    }
+                } for chunk in research_chunks
+            ]
+            children.append({
+                "type": "toggle",
+                "toggle": {
+                    "rich_text": [{"type": "text", "text": {"content": "🧠 Investigación Perplexity"}}],
+                    "children": research_children
+                }
+            })
+
+        # 2. Draft Toggle
+        if draft:
+            draft_chunks = create_chunks(draft)
+            draft_children = [
+                {
+                    "type": "paragraph",
+                    "paragraph": {
+                        "rich_text": [{"type": "text", "text": {"content": chunk}}]
+                    }
+                } for chunk in draft_chunks
+            ]
+            children.append({
+                "type": "toggle",
+                "toggle": {
+                    "rich_text": [{"type": "text", "text": {"content": "📄 Borrador Generado"}}],
+                    "children": draft_children
+                }
+            })
+
+        if not children:
+            return True
+
+        try:
+            self.client.blocks.children.append(
+                block_id=page_id,
+                children=children
+            )
+            logger.info(f"Appended content blocks to Notion page {page_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error appending content blocks to Notion: {e}")
+            return False
+
     def get_last_case_id(self, type_prefix: str) -> Optional[str]:
         """
         Retrieves the last used Case ID for a given prefix (e.g., 'D', 'J') in the current year.

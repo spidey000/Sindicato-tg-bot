@@ -15,6 +15,28 @@ from src.config import (
 
 logger = logging.getLogger(__name__)
 
+# Model-specific max_tokens configuration
+# Maps model name patterns to their optimal max_tokens value
+MODEL_MAX_TOKENS = {
+    "deepseek/deepseek-r1": 32768,
+    "deepseek/deepseek-chat": 8192,
+    "google/gemma-3-27b": 8192,
+    "moonshotai/moonlight": 8192,
+    "qwen/qwen3-4b": 4096,
+    "anthropic/claude": 8192,
+    "openai/gpt-4": 8192,
+}
+
+DEFAULT_MAX_TOKENS = 8192
+
+def get_max_tokens_for_model(model: str) -> int:
+    """Returns the optimal max_tokens value for a given model."""
+    model_lower = model.lower()
+    for pattern, max_tokens in MODEL_MAX_TOKENS.items():
+        if pattern in model_lower:
+            return max_tokens
+    return DEFAULT_MAX_TOKENS
+
 class OpenRouterClient:
     def __init__(self):
         self.api_key = OPENROUTER_API_KEY
@@ -82,6 +104,79 @@ class OpenRouterClient:
             else:
                 return f"Error generating text: {e}"
 
+    async def generate_from_template(
+        self, 
+        template: str, 
+        context: str, 
+        research: str,
+        model: str = None
+    ) -> str:
+        """
+        Generates a filled legal document by combining:
+        - Template structure (with {{DYNAMIC}} placeholders)
+        - User context (facts of the case)
+        - Perplexity research (legal grounds, verbatim)
+        
+        Uses MODEL_PRIMARY by default.
+        Returns the complete document as markdown.
+        """
+        target_model = model or MODEL_PRIMARY
+        
+        system_prompt = (
+            "Eres un abogado laboralista español experto en redacción de documentos legales. "
+            "Tu tarea es rellenar una plantilla de documento legal usando los hechos del caso "
+            "y la investigación jurídica proporcionada.\n\n"
+            "INSTRUCCIONES:\n"
+            "1. Mantén EXACTAMENTE la estructura y formato de la plantilla\n"
+            "2. Los campos marcados como [DATO FIJO] o [HARDCODED] NO deben modificarse\n"
+            "3. Rellena TODOS los campos {{PLACEHOLDER}} con información apropiada\n"
+            "4. Usa la investigación jurídica para los fundamentos de derecho\n"
+            "5. Redacta en estilo jurídico formal español\n"
+            "6. No inventes datos que no estén en los hechos o la investigación\n"
+            "7. Si falta información para un campo, usa '[PENDIENTE DE COMPLETAR]'\n"
+            "8. El documento final debe estar listo para revisión humana\n\n"
+            "IMPORTANTE: Devuelve SOLO el documento rellenado, sin explicaciones adicionales."
+        )
+        
+        user_prompt = (
+            f"## PLANTILLA DEL DOCUMENTO\n\n{template}\n\n"
+            f"---\n\n"
+            f"## HECHOS DEL CASO (proporcionados por el usuario)\n\n{context}\n\n"
+            f"---\n\n"
+            f"## INVESTIGACIÓN JURÍDICA (Perplexity)\n\n{research}\n\n"
+            f"---\n\n"
+            "Genera el documento legal completo rellenando todos los campos {{PLACEHOLDER}} "
+            "de la plantilla. Mantén el formato markdown."
+        )
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        try:
+            content = await self._make_request(messages, target_model, None)
+            
+            # Validation: Trigger retry if content is empty or error-like
+            if not content or len(content) < 50:
+                 raise ValueError("Generated content is empty or too short.")
+            
+            logger.info(f"✅ Document generated from template. Model: {target_model}. Length: {len(content)} chars.")
+            return content
+        except Exception as e:
+            logger.error(f"Error generating document from template with {target_model}: {e}")
+            # Try fallback
+            if target_model != MODEL_FALLBACK:
+                logger.info(f"Retrying document generation with fallback: {MODEL_FALLBACK}")
+                try:
+                    content = await self._make_request(messages, MODEL_FALLBACK, None)
+                    logger.info(f"✅ Document generated (fallback). Model: {MODEL_FALLBACK}. Length: {len(content)} chars.")
+                    return content
+                except Exception as e2:
+                    logger.error(f"Fallback also failed: {e2}")
+                    raise e2
+            raise e
+
     async def _repair_json(self, invalid_content: str, original_format: dict) -> str:
         """
         Attempts to repair malformed JSON using the REPAIR_MODEL.
@@ -122,10 +217,11 @@ class OpenRouterClient:
             return invalid_content
 
     async def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
+        max_tokens = get_max_tokens_for_model(model)
         payload = {
             "model": model,
             "messages": messages,
-            "max_tokens": 8192  # Set a reasonable limit to avoid context length errors
+            "max_tokens": max_tokens
         }
         
         if response_format and "deepseek" in model.lower():
