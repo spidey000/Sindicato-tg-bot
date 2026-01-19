@@ -10,7 +10,7 @@ class PerplexityClient:
         self.primary_key = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
         self.fallback_key = os.getenv("PERPLEXITY_API_KEY_FALLBACK")
         self.api_url = "https://api.perplexity.ai/chat/completions"
-        self.model = "sonar-reasoning-pro" # Using an online model for grounding
+        self.model = "sonar-pro" # Using an online model for grounding
         self.last_raw_response = None
 
     async def verify_draft(self, context: str, thesis: str = "", specific_point: str = "", area: str = "") -> Optional[str]:

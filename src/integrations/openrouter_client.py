@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 # Model-specific max_tokens configuration
 # Maps model name patterns to their optimal max_tokens value
 MODEL_MAX_TOKENS = {
-    "deepseek/deepseek-r1": 16384,
+    "deepseek/deepseek-r1": 32768,
     "deepseek/deepseek-chat": 8192,
     "google/gemma-3-27b": 8192,
     "moonshotai/moonlight": 8192,
@@ -156,6 +156,11 @@ class OpenRouterClient:
         
         try:
             content = await self._make_request(messages, target_model, None)
+            
+            # Validation: Trigger retry if content is empty or error-like
+            if not content or len(content) < 50:
+                 raise ValueError("Generated content is empty or too short.")
+            
             logger.info(f"✅ Document generated from template. Model: {target_model}. Length: {len(content)} chars.")
             return content
         except Exception as e:

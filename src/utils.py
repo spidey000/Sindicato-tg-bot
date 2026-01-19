@@ -3,6 +3,9 @@ from datetime import datetime
 import random
 import os
 from telegram.error import BadRequest
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProgressTracker:
     """
@@ -18,6 +21,7 @@ class ProgressTracker:
         if step_name in self.status:
             self.status[step_name] = "in_progress"
             self.start_times[step_name] = time.time()
+            logger.info(f"⏳ Starting step: {step_name}")
 
     def complete_step(self, step_name: str):
         if step_name in self.status:
@@ -25,10 +29,12 @@ class ProgressTracker:
             if step_name in self.start_times:
                 elapsed = time.time() - self.start_times[step_name]
                 self.elapsed_times[step_name] = f"{elapsed:.1f}s"
+            logger.info(f"✅ Completed step: {step_name} in {self.elapsed_times.get(step_name, '0s')}")
 
     def fail_step(self, step_name: str):
         if step_name in self.status:
             self.status[step_name] = "failed"
+            logger.error(f"❌ Failed step: {step_name}")
 
     def get_steps_status(self) -> list:
         """
