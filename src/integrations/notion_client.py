@@ -3,6 +3,7 @@ import os
 import logging
 from typing import Dict, Any, Optional
 from src.utils.retry import sync_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ class DelegadoNotionClient:
         backoff_factor=2.0,
         exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
+    @track_api_call('notion')
     def create_case_page(self, case_data: Dict[str, Any]) -> Optional[str]:
         """
         Creates a new page in the Notion database for a case.
@@ -169,6 +171,7 @@ class DelegadoNotionClient:
         backoff_factor=2.0,
         exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
+    @track_api_call('notion')
     def update_case_status(self, case_id: str, new_status: str) -> bool:
         """
         Updates the status of a case in Notion.
@@ -199,6 +202,7 @@ class DelegadoNotionClient:
         backoff_factor=2.0,
         exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
+    @track_api_call('notion')
     def update_page_links(self, page_id: str, drive_link: str = None, doc_link: str = None):
         """
         Updates the Drive and Doc links for a specific page.
@@ -355,6 +359,7 @@ class DelegadoNotionClient:
         backoff_factor=2.0,
         exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
+    @track_api_call('notion')
     def append_content_blocks(self, page_id: str, research: str, draft: str) -> bool:
         """
         Appends Research and Draft content as toggle blocks to the Notion page.

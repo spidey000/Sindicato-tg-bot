@@ -7,6 +7,7 @@ from googleapiclient.http import MediaIoBaseUpload
 from typing import Optional
 from src.integrations.auth_helper import get_google_creds
 from src.utils.retry import sync_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,7 @@ class DelegadoDriveClient:
         backoff_factor=2.0,
         exceptions=(HttpError, ConnectionError, TimeoutError)
     )
+    @track_api_call('drive')
     def create_case_folder(self, case_id: str, case_name: str, case_type: str = "denuncia") -> tuple[Optional[str], Optional[str]]:
         """
         Creates a folder for the case and returns (WebViewLink, FolderID).
@@ -79,6 +81,7 @@ class DelegadoDriveClient:
         backoff_factor=2.0,
         exceptions=(HttpError, ConnectionError, TimeoutError)
     )
+    @track_api_call('drive')
     def create_subfolder(self, parent_id: str, folder_name: str) -> Optional[str]:
         """
         Creates a subfolder inside a case folder.
@@ -104,6 +107,7 @@ class DelegadoDriveClient:
         backoff_factor=2.0,
         exceptions=(HttpError, ConnectionError, TimeoutError)
     )
+    @track_api_call('drive')
     def upload_file(self, file_content: bytes, file_name: str, folder_id: str, mime_type: str = None) -> Optional[str]:
         """
         Uploads a file to the specified Drive folder.

@@ -3,6 +3,7 @@ import httpx
 import logging
 from typing import Optional
 from src.utils.retry import async_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +168,7 @@ class PerplexityClient:
         backoff_factor=2.0,
         exceptions=(httpx.HTTPError, httpx.TimeoutException, ConnectionError, OSError)
     )
+    @track_api_call('perplexity')
     async def _make_request(self, api_key: str, payload: dict) -> Optional[str]:
         """
         Make HTTP request to Perplexity API with retry logic.

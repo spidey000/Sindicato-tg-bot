@@ -65,6 +65,7 @@ import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 from src.utils.retry import sync_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +118,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def log_event(
         self,
         user_id: int,
@@ -173,6 +175,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def get_events(
         self,
         user_id: Optional[int] = None,
@@ -228,6 +231,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def get_events_by_date_range(
         self,
         start_date: date,
@@ -271,6 +275,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def get_recent_events(self, user_id: int, days: int = 30) -> List[Dict[str, Any]]:
         """
         Query events from the last N days for a specific user.
@@ -345,6 +350,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def get_user_profile(self, telegram_user_id: int) -> Optional[Dict[str, Any]]:
         """
         Retrieve user profile by Telegram user ID.
@@ -380,6 +386,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def create_user_profile(self, profile_data: Dict[str, Any]) -> bool:
         """
         Create new user profile.
@@ -414,6 +421,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def update_user_profile(self, telegram_user_id: int, profile_data: Dict[str, Any]) -> bool:
         """
         Update existing user profile.
@@ -449,6 +457,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def delete_user_profile(self, telegram_user_id: int) -> bool:
         """
         Delete user profile (soft delete by setting is_active=False).
@@ -483,6 +492,7 @@ class DelegadoSupabaseClient:
         backoff_factor=2.0,
         exceptions=(Exception, ConnectionError, TimeoutError)
     )
+    @track_api_call('supabase')
     def list_all_user_profiles(self) -> List[Dict[str, Any]]:
         """
         List all active user profiles (admin function).

@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 from src.integrations.auth_helper import get_google_creds
 from src.utils.retry import sync_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class DelegadoDocsClient:
         backoff_factor=2.0,
         exceptions=(HttpError, ConnectionError, TimeoutError)
     )
+    @track_api_call('docs')
     def create_draft_document(self, title: str, content: str, parent_folder_id: str) -> Optional[str]:
         """
         Creates a Google Doc with content and moves it to the specified folder.
@@ -111,6 +113,7 @@ class DelegadoDocsClient:
         backoff_factor=2.0,
         exceptions=(HttpError, ConnectionError, TimeoutError)
     )
+    @track_api_call('docs')
     def update_document_content(self, document_id: str, new_content: str) -> bool:
         """
         Replaces the entire content of the document with new_content.

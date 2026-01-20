@@ -12,6 +12,7 @@ from src.config import (
     SAVE_RAW_LLM_RESPONSES
 )
 from src.utils.retry import async_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -222,6 +223,7 @@ class OpenRouterClient:
         backoff_factor=2.0,
         exceptions=(aiohttp.ClientError, aiohttp.ClientTimeout, ConnectionError, OSError)
     )
+    @track_api_call('openrouter')
     async def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
         """
         Make HTTP request to OpenRouter API with retry logic.
