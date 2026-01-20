@@ -1,16 +1,21 @@
 """
-Supabase Client for Marxnager Event Logging
+Supabase Client for Marxnager Event Logging and User Profiles
 
-This module provides integration with Supabase for chronological event logging.
-It complements Notion (active case management) with historical event tracking.
+This module provides integration with Supabase for:
+1. Chronological event logging (history_events table)
+2. User profile management (user_profiles table)
+
+It complements Notion (active case management) with historical event tracking
+and multi-user support.
 
 Purpose:
 - Log all case-related events with timestamps
 - Query events by date range for /history command
 - Maintain chronological timeline of labor incidents
 - Enable time-series analysis of delegate activity
+- Store and retrieve user profiles for multi-user support
 
-Schema:
+Schema - Event Logging:
 CREATE TABLE history_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id BIGINT NOT NULL,
@@ -19,6 +24,39 @@ CREATE TABLE history_events (
     case_id TEXT,
     event_type TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+Schema - User Profiles:
+CREATE TABLE user_profiles (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    telegram_user_id BIGINT UNIQUE NOT NULL,
+    telegram_username TEXT,
+    telegram_first_name TEXT,
+    nombre TEXT NOT NULL,
+    dni TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    telefono TEXT NOT NULL,
+    direccion TEXT NOT NULL,
+    codigo_postal TEXT NOT NULL,
+    ciudad TEXT NOT NULL,
+    provincia TEXT NOT NULL,
+    naf TEXT NOT NULL,
+    fecha_alta TEXT NOT NULL,
+    centro_trabajo TEXT NOT NULL,
+    puesto TEXT,
+    empresa_nombre TEXT NOT NULL,
+    empresa_cif TEXT NOT NULL,
+    empresa_direccion TEXT NOT NULL,
+    empresa_codigo_postal TEXT NOT NULL,
+    empresa_ciudad TEXT NOT NULL,
+    empresa_provincia TEXT NOT NULL,
+    empresa_actividad TEXT,
+    empresa_ccc TEXT NOT NULL,
+    empresa_trabajadores INTEGER DEFAULT 0,
+    empresa_horario TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    is_active BOOLEAN DEFAULT TRUE
 );
 """
 
@@ -298,3 +336,170 @@ class DelegadoSupabaseClient:
         except Exception as e:
             logger.error(f"Supabase connection test failed: {e}")
             return False
+
+    # ========== User Profile Management ==========
+
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(Exception, ConnectionError, TimeoutError)
+    )
+    def get_user_profile(self, telegram_user_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve user profile by Telegram user ID.
+
+        Args:
+            telegram_user_id: Telegram user ID
+
+        Returns:
+            Profile dictionary if found, None otherwise
+        """
+        if not self.client:
+            logger.warning("Supabase client not initialized")
+            return None
+
+        try:
+            response = self.client.table("user_profiles").select("*").eq("telegram_user_id", telegram_user_id).execute()
+
+            if response.data and len(response.data) > 0:
+                profile = response.data[0]
+                logger.info(f"Profile retrieved for user {telegram_user_id}")
+                return profile
+            else:
+                logger.info(f"No profile found for user {telegram_user_id}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Error retrieving profile for user {telegram_user_id}: {e}")
+            return None
+
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(Exception, ConnectionError, TimeoutError)
+    )
+    def create_user_profile(self, profile_data: Dict[str, Any]) -> bool:
+        """
+        Create new user profile.
+
+        Args:
+            profile_data: Dictionary with profile fields
+
+        Returns:
+            True if created successfully, False otherwise
+        """
+        if not self.client:
+            logger.warning("Supabase client not initialized")
+            return False
+
+        try:
+            response = self.client.table("user_profiles").insert(profile_data).execute()
+
+            if response.data:
+                logger.info(f"Profile created for user {profile_data.get('telegram_user_id')}")
+                return True
+            else:
+                logger.error("Failed to create profile: No data returned")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error creating user profile: {e}")
+            return False
+
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(Exception, ConnectionError, TimeoutError)
+    )
+    def update_user_profile(self, telegram_user_id: int, profile_data: Dict[str, Any]) -> bool:
+        """
+        Update existing user profile.
+
+        Args:
+            telegram_user_id: Telegram user ID
+            profile_data: Dictionary with updated profile fields
+
+        Returns:
+            True if updated successfully, False otherwise
+        """
+        if not self.client:
+            logger.warning("Supabase client not initialized")
+            return False
+
+        try:
+            response = self.client.table("user_profiles").update(profile_data).eq("telegram_user_id", telegram_user_id).execute()
+
+            if response.data:
+                logger.info(f"Profile updated for user {telegram_user_id}")
+                return True
+            else:
+                logger.error("Failed to update profile: No data returned")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error updating user profile: {e}")
+            return False
+
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(Exception, ConnectionError, TimeoutError)
+    )
+    def delete_user_profile(self, telegram_user_id: int) -> bool:
+        """
+        Delete user profile (soft delete by setting is_active=False).
+
+        Args:
+            telegram_user_id: Telegram user ID
+
+        Returns:
+            True if deleted successfully, False otherwise
+        """
+        if not self.client:
+            logger.warning("Supabase client not initialized")
+            return False
+
+        try:
+            response = self.client.table("user_profiles").update({"is_active": False}).eq("telegram_user_id", telegram_user_id).execute()
+
+            if response.data:
+                logger.info(f"Profile soft-deleted for user {telegram_user_id}")
+                return True
+            else:
+                logger.error("Failed to delete profile: No data returned")
+                return False
+
+        except Exception as e:
+            logger.error(f"Error deleting user profile: {e}")
+            return False
+
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(Exception, ConnectionError, TimeoutError)
+    )
+    def list_all_user_profiles(self) -> List[Dict[str, Any]]:
+        """
+        List all active user profiles (admin function).
+
+        Returns:
+            List of profile dictionaries
+        """
+        if not self.client:
+            logger.warning("Supabase client not initialized")
+            return []
+
+        try:
+            response = self.client.table("user_profiles").select("*").eq("is_active", True).execute()
+            profiles = response.data if response.data else []
+            logger.info(f"Retrieved {len(profiles)} active profiles")
+            return profiles
+
+        except Exception as e:
+            logger.error(f"Error listing user profiles: {e}")
+            return []

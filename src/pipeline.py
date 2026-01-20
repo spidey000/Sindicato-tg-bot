@@ -40,6 +40,7 @@ from src.integrations.openrouter_client import OpenRouterClient
 from src.integrations.supabase_client import DelegadoSupabaseClient
 from src.template_loader import get_template_for_document_type
 from src.handlers.base import notion, drive, docs, logger
+from src.user_profile import UserProfileManager
 
 # Document type configurations
 DOCUMENT_CONFIGS = {
@@ -169,8 +170,19 @@ async def execute_document_pipeline(
             last_id = notion.get_last_case_id(config['case_prefix'])
             case_id = generate_case_id(config['case_prefix'], last_id)
 
-            # Load template
-            template = get_template_for_document_type(document_type)
+            # Load user profile and inject into template
+            user_id = update.effective_user.id
+            profile_manager = UserProfileManager(supabase_client=supabase_client)
+            user_profile = profile_manager.get_profile(user_id)
+
+            if not user_profile:
+                logger.warning(f"No profile found for user {user_id}, using template with hardcoded data")
+                # Fall back to template without profile injection
+                template = get_template_for_document_type(document_type, user_profile=None)
+            else:
+                logger.info(f"Loaded profile for user {user_id}: {user_profile.nombre}")
+                template = get_template_for_document_type(document_type, user_profile=user_profile)
+
             if not template:
                 raise ValueError(f"No se pudo cargar la plantilla de {document_type}")
 
