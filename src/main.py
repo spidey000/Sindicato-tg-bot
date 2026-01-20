@@ -3,14 +3,15 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, fil
 from src.config import BOT_TOKEN
 from src.logging_config import setup_logging
 from src.handlers import (
-    start, 
-    denuncia_handler, 
-    demanda_handler, 
+    start,
+    denuncia_handler,
+    demanda_handler,
     email_handler,
     private_message_handler,
     stop_editing_handler,
     status_handler,
     update_handler,
+    metrics_command,
     log_command,
     help_command
 )
@@ -32,6 +33,7 @@ def main():
     # Command Handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("metrics", metrics_command))
     application.add_handler(CommandHandler("log", log_command))
     application.add_handler(CommandHandler("denuncia", denuncia_handler))
     application.add_handler(CommandHandler("demanda", demanda_handler))

@@ -17,6 +17,72 @@ from src.middleware import restricted
 from src.utils import get_logs
 from src.session_manager import session_manager
 from src.middleware import logger
+from src.utils.monitoring import api_metrics
+
+
+@restricted
+async def metrics_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handler for the /metrics command.
+    Displays API performance metrics including success rates, latency, and errors.
+
+    Usage: /metrics [minutes]
+
+    Args:
+        minutes: Optional time window in minutes (default: 60)
+
+    This command is restricted to authorized users only.
+    """
+    # Parse optional minutes argument
+    minutes = 60
+    if context.args and context.args[0].isdigit():
+        minutes = int(context.args[0])
+
+    await update.message.reply_text(f"📊 Recopilando métricas de los últimos {minutes} minutos...")
+
+    # Get metrics
+    metrics = api_metrics.get_all_metrics(minutes)
+
+    # Build response
+    response_lines = [f"📊 *MÉTRICAS API* (Últimos {minutes} minutos)\n"]
+
+    if not metrics:
+        response_lines.append("_No hay datos de llamadas a la API en este período._")
+    else:
+        for api_name, api_metrics_data in metrics.items():
+            response_lines.append(f"\n🔹 *{api_name.upper()}*")
+
+            # Success rate
+            success_rate = api_metrics_data['success_rate']
+            if success_rate is not None:
+                emoji = "✅" if success_rate >= 90 else "⚠️" if success_rate >= 70 else "❌"
+                response_lines.append(f"  {emoji} Tasa de éxito: {success_rate:.1f}%")
+            else:
+                response_lines.append("  ℹ️ Sin datos")
+
+            # Latency
+            avg_latency = api_metrics_data['avg_latency_ms']
+            if avg_latency is not None:
+                response_lines.append(f"  ⏱️ Latencia media: {avg_latency:.0f}ms")
+
+            # Errors
+            error_summary = api_metrics_data['error_summary']
+            if error_summary:
+                response_lines.append(f"  ❌ Errores:")
+                for error_type, count in error_summary.items():
+                    response_lines.append(f"     • {error_type}: {count}")
+
+            # Rate limits
+            rate_limits = api_metrics_data['rate_limit_hits']
+            if rate_limits > 0:
+                response_lines.append(f"  🚨 Límites de tasa: {rate_limits}")
+
+    response = "\n".join(response_lines)
+
+    # Also log to console for admin visibility
+    api_metrics.log_summary(minutes)
+
+    await update.message.reply_text(response, parse_mode='Markdown')
 
 
 @restricted
@@ -110,6 +176,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• `/status [ID] [estado]` → Actualiza el estado en Notion.\n"
         "• `/update` → (Privado) Lista casos activos para editar.\n"
         "• `/stop` → (Privado) Sale del modo edición.\n"
+        "• `/metrics [minutos]` → (Admin) Métricas de rendimiento de la API.\n"
         "• `/log` → (Admin) Descarga logs del sistema.\n\n"
         "🔒 *MODO PRIVADO (EDICIÓN)*\n"
         "Cuando inicias un caso o usas `/update` en privado, entras en 'Modo Edición'.\n"
@@ -130,4 +197,4 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-__all__ = ['log_command', 'start', 'help_command']
+__all__ = ['metrics_command', 'log_command', 'start', 'help_command']

@@ -15,7 +15,7 @@ Module Structure:
 """
 
 from src.handlers.base import notion, drive, docs
-from src.handlers.admin import log_command, start, help_command
+from src.handlers.admin import metrics_command, log_command, start, help_command
 from src.handlers.denuncia import denuncia_handler
 from src.handlers.demanda import demanda_handler
 from src.handlers.email import email_handler
@@ -27,7 +27,7 @@ __all__ = [
     'notion', 'drive', 'docs',
 
     # Admin commands
-    'log_command', 'start', 'help_command',
+    'metrics_command', 'log_command', 'start', 'help_command',
 
     # Document generation commands
     'denuncia_handler', 'demanda_handler', 'email_handler',
