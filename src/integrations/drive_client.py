@@ -1,5 +1,5 @@
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError, RefreshError
+from googleapiclient.errors import HttpError
 import os
 import logging
 import io
@@ -30,7 +30,7 @@ class DelegadoDriveClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+        exceptions=(HttpError, ConnectionError, TimeoutError)
     )
     def create_case_folder(self, case_id: str, case_name: str, case_type: str = "denuncia") -> tuple[Optional[str], Optional[str]]:
         """
@@ -77,7 +77,7 @@ class DelegadoDriveClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+        exceptions=(HttpError, ConnectionError, TimeoutError)
     )
     def create_subfolder(self, parent_id: str, folder_name: str) -> Optional[str]:
         """
@@ -102,7 +102,7 @@ class DelegadoDriveClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+        exceptions=(HttpError, ConnectionError, TimeoutError)
     )
     def upload_file(self, file_content: bytes, file_name: str, folder_id: str, mime_type: str = None) -> Optional[str]:
         """

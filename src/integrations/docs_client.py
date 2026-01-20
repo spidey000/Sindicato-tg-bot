@@ -1,5 +1,5 @@
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError, RefreshError
+from googleapiclient.errors import HttpError
 import os
 import logging
 from typing import Optional
@@ -32,7 +32,7 @@ class DelegadoDocsClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+        exceptions=(HttpError, ConnectionError, TimeoutError)
     )
     def create_draft_document(self, title: str, content: str, parent_folder_id: str) -> Optional[str]:
         """
@@ -109,7 +109,7 @@ class DelegadoDocsClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+        exceptions=(HttpError, ConnectionError, TimeoutError)
     )
     def update_document_content(self, document_id: str, new_content: str) -> bool:
         """

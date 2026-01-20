@@ -1,5 +1,4 @@
-from notion_client import Client, APIError, APIResponseError
-from notion_client.errors import RateLimitError
+from notion_client import Client, APIResponseError
 import os
 import logging
 from typing import Dict, Any, Optional
@@ -51,7 +50,7 @@ class DelegadoNotionClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
     def create_case_page(self, case_data: Dict[str, Any]) -> Optional[str]:
         """
@@ -168,7 +167,7 @@ class DelegadoNotionClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
     def update_case_status(self, case_id: str, new_status: str) -> bool:
         """
@@ -198,7 +197,7 @@ class DelegadoNotionClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
     def update_page_links(self, page_id: str, drive_link: str = None, doc_link: str = None):
         """
@@ -354,7 +353,7 @@ class DelegadoNotionClient:
         max_retries=3,
         initial_delay=1.0,
         backoff_factor=2.0,
-        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
     )
     def append_content_blocks(self, page_id: str, research: str, draft: str) -> bool:
         """
