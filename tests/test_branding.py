@@ -9,15 +9,27 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 def test_branding_in_handlers():
     """
     Check if handlers return 'Marxnager' instead of 'Delegado 360'.
-    We'll test this by checking if the strings in src/handlers.py have been updated.
-    Since we can't easily execute Telegram handlers without complex mocks, 
-    we'll read the file and check for the presence of 'Marxnager' in expected places.
+    We'll test this by checking if the strings in src/handlers/ have been updated.
+    Since we can't easily execute Telegram handlers without complex mocks,
+    we'll read the handler files and check for the presence of 'Marxnager' in expected places.
     """
-    with open("src/handlers.py", "r") as f:
-        content = f.read()
-    
-    assert "Marxnager" in content
-    assert "Delegado 360" not in content
+    import os
+    handler_dir = "src/handlers"
+    branding_found = False
+    old_branding_found = False
+
+    for filename in os.listdir(handler_dir):
+        if filename.endswith('.py') and filename != '__init__.py':
+            filepath = os.path.join(handler_dir, filename)
+            with open(filepath, "r") as f:
+                content = f.read()
+                if "Marxnager" in content:
+                    branding_found = True
+                if "Delegado 360" in content:
+                    old_branding_found = True
+
+    assert branding_found, "No 'Marxnager' branding found in handler files"
+    assert not old_branding_found, "Old 'Delegado 360' branding still present in handler files"
 
 def test_branding_in_main_logs():
     """

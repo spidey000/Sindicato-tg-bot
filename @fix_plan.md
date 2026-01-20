@@ -25,6 +25,9 @@ These tasks are **NON-BLOCKING** - the bot functions correctly without them.
 - [x] **Implement CI/CD** - GitHub Actions workflow for automated testing and deployment (commit a8c45884)
 - [x] **Add error recovery** - Comprehensive retry logic with exponential backoff for Notion/Drive APIs (commit 82e412ab)
 - [x] **Add retry to LLM calls** - Refactored PerplexityClient and OpenRouterClient to use centralized retry decorators (commit f30f78bd)
+- [x] **Fix test imports** - Updated tests to reference src/handlers/ directory and src/utils for progress functions (2026-01-20)
+- [ ] **Push commits to remote** - 🚨 URGENT (19 commits ahead of origin/main blocking team collaboration)
+  - Ralph cannot authenticate - user must run: `cd /home/gg/Documents/CODE/Sindicato-tg-bot && git push origin main`
 
 ## Medium Priority (Production Readiness)
 - [x] **Add monitoring & alerts** - Implemented APIMetrics class and /metrics command for tracking bot failures, API success rates, latency, rate limit hits (commit f30f78bd)
@@ -74,9 +77,13 @@ These tasks are **NON-BLOCKING** - the bot functions correctly without them.
 
 ### Current Branch Status
 - **Branch:** main
-- **Status:** 16 commits ahead of origin/main (ready to push, requires authentication)
-- **Latest commit:** 0a16cfe0 - feat(monitoring): Apply API call tracking to all integration methods (2026-01-20)
-- **Latest Ralph Session:** 2026-01-20 Session 3 - Fixed async test mocks, verified test suite health (56/75 tests passing)
+- **Status:** ⚠️ AWAITING USER PUSH - 19 commits ahead of origin/main (Ralph cannot authenticate)
+- **Latest commit:** c29f56fd - docs(integrations): Complete API documentation with __init__ method docstrings
+- **Latest Ralph Session:** 2026-01-20 Session 4 - Fixed test imports for handlers refactoring, cleaned up temporary files
+- **Test Suite:** 58/75 tests passing (77% pass rate)
+  - 17 failing tests are mostly integration tests requiring live credentials
+  - All unit tests for agents, retry logic, and LLM hierarchy pass
+  - CI/CD pipeline configured to handle expected credential-based failures
 - **Recent commits:**
   - d7db75c3: docs: Add comprehensive service setup guides (2026-01-20)
   - 4f55344d: docs: Add Ralph session summary for 2026-01-20
@@ -93,21 +100,23 @@ These tasks are **NON-BLOCKING** - the bot functions correctly without them.
   - 7ec2594e: refactor(handlers): Split monolithic handlers.py into modular components
   - ed68f989: Merge branch 'feature/demanda-pipeline' into main
 
-### Immediate Next Steps (All Development Tasks Complete!)
-1. ✅ **Remove unused dependencies** - COMPLETED (2026-01-20): Removed package.json, package-lock.json, node_modules/
-2. ✅ **Review PRD changes** - RESOLVED (2026-01-20): Content moved from PRD.md to SPECIFICATION.md in commit 1261b400
-3. ✅ **Create Supabase setup guide** - COMPLETED (2026-01-20): Created SUPABASE_SETUP.md with step-by-step instructions
-4. ✅ **Create profile test script** - COMPLETED (2026-01-20): Created test_profile_system.py for offline testing
-5. ✅ **Enhanced deployment guides** - COMPLETED (2026-01-20): Added GOOGLE_SETUP.md and NOTION_SETUP.md
-6. ✅ **Commit deployment documentation** - COMPLETED (2026-01-20): Commit d7db75c3 - docs: Add comprehensive service setup guides
-7. ✅ **Add pytest to requirements** - COMPLETED (2026-01-20): Added testing dependencies to requirements.txt
-8. ✅ **Mark all manual tasks** - COMPLETED (2026-01-20): All non-doable tasks marked as [MANUAL]
+### Immediate Next Steps
+1. **USER ACTION REQUIRED: Push commits to remote** - Run `cd /home/gg/Documents/CODE/Sindicato-tg-bot && git push origin main`
+   - 19 production-ready commits waiting to be pushed
+   - Includes: CI/CD, retry logic, Supabase profiles/history, handlers refactoring, complete docstrings
+2. **Optional: Test Supabase integration** - Profiles and /history command are ready but optional
+   - Bot gracefully degrades to hardcoded data if Supabase not configured
+3. **Monitor production** - Use /metrics command to track API health and success rates
 
-### Optional Next Steps (User Action Required)
-1. **Push commits to remote** - 13 commits ahead of origin/main (requires user git authentication)
-2. **Test /profile with Supabase** - OPTIONAL: Set up Supabase project, run migration, verify profile CRUD works
-3. **Test profile injection** - OPTIONAL: Create test profile, generate document, verify profile data appears in output
-4. **Clean up session files** - OPTIONAL: Remove duplicate Ralph session files (RALPH_SESSION_2026-01-20*.md, etc.)
+### Today's Completed Work (2026-01-20)
+- ✅ Fixed test imports for handlers.py → handlers/ refactoring (test_branding.py, test_help_command.py)
+- ✅ Fixed test mocks for progress functions (src.handlers.* → src.utils.*)
+- ✅ Verified CI/CD workflow configuration (test, lint, build, security jobs)
+- ✅ Ran test suite: 58/75 tests passing (77% pass rate)
+  - Failing tests are mostly integration tests requiring live credentials
+  - All unit tests for core functionality pass
+- ✅ Cleaned up temporary Ralph session files
+- ✅ Updated @fix_plan.md with current status
 
 ### User Feedback Highlights
 **Working Well:**

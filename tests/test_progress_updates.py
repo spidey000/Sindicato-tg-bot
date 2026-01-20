@@ -4,13 +4,13 @@ from src.handlers import denuncia_handler
 
 class TestProgressUpdates(unittest.IsolatedAsyncioTestCase):
     @patch("src.middleware.AUTHORIZED_USERS", [123])
-    @patch("src.handlers.send_progress_message")
-    @patch("src.handlers.update_progress_message")
+    @patch("src.utils.send_progress_message")
+    @patch("src.utils.update_progress_message")
     @patch("src.handlers.agent_orchestrator")
     @patch("src.handlers.notion")
     @patch("src.handlers.drive")
     @patch("src.handlers.docs")
-    @patch("src.handlers.generate_case_id")
+    @patch("src.utils.generate_case_id")
     async def test_progress_status_transitions(self, mock_gen_id, mock_docs, mock_drive, mock_notion, mock_orch, mock_update_progress, mock_send_progress):
         # Setup mocks
         update = MagicMock()
@@ -67,8 +67,8 @@ class TestProgressUpdates(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(steps_status14[6][:2], ["Docs Creation", "completed"])
 
     @patch("src.middleware.AUTHORIZED_USERS", [123])
-    @patch("src.handlers.send_progress_message")
-    @patch("src.handlers.update_progress_message")
+    @patch("src.utils.send_progress_message")
+    @patch("src.utils.update_progress_message")
     @patch("src.handlers.agent_orchestrator")
     async def test_progress_failure_marking(self, mock_orch, mock_update_progress, mock_send_progress):
         # Setup mocks for failure

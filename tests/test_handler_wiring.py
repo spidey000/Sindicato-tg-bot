@@ -9,8 +9,8 @@ class TestHandlerWiring(unittest.IsolatedAsyncioTestCase):
     @patch("src.handlers.docs")
     @patch("src.handlers.agent_orchestrator")
     @patch("src.middleware.AUTHORIZED_USERS", [12345])
-    @patch("src.handlers.send_progress_message")
-    @patch("src.handlers.update_progress_message")
+    @patch("src.utils.send_progress_message")
+    @patch("src.utils.update_progress_message")
     async def test_denuncia_handler_uses_summary(self, mock_update_prog, mock_send_prog, mock_orchestrator, mock_docs, mock_drive, mock_notion):
         # Setup
         update = MagicMock()
