@@ -454,11 +454,26 @@ class UserProfileManager:
         """
         List all active profiles (admin only).
 
+        Queries Supabase for all active user profiles and returns them as
+        UserProfile objects. Falls back to cached profiles if Supabase is
+        not available.
+
         Returns:
             List of all active UserProfile objects
         """
-        # TODO: Implement Supabase query
-        # For now, return cached profiles
+        # Try to get fresh data from Supabase
+        if self.supabase:
+            try:
+                profile_dicts = self.supabase.list_all_user_profiles()
+                if profile_dicts:
+                    profiles = [UserProfile.from_dict(pd) for pd in profile_dicts]
+                    logger.info(f"Retrieved {len(profiles)} profiles from Supabase")
+                    return profiles
+            except Exception as e:
+                logger.warning(f"Failed to query Supabase for profiles: {e}, falling back to cache")
+
+        # Fallback to cached profiles
+        logger.info("Returning cached profiles")
         return list(self._cache.values())
 
 
