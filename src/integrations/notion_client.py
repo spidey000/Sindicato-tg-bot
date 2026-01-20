@@ -1,7 +1,9 @@
-from notion_client import Client
+from notion_client import Client, APIError, APIResponseError
+from notion_client.errors import RateLimitError
 import os
 import logging
 from typing import Dict, Any, Optional
+from src.utils.retry import sync_retry
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +47,18 @@ class DelegadoNotionClient:
         
         raise AttributeError("'DatabasesEndpoint' object has no attribute 'query' and no Data Source fallback found.")
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+    )
     def create_case_page(self, case_data: Dict[str, Any]) -> Optional[str]:
         """
         Creates a new page in the Notion database for a case.
         Returns the ID of the created page.
+
+        Includes retry logic for transient API failures.
         """
         if not self.client or not self.database_id:
             logger.error("Notion client not initialized or database ID missing.")
@@ -85,7 +95,7 @@ class DelegadoNotionClient:
 
             if notion_type:
                 properties["Organismo"] = {"select": {"name": notion_type}}
-            
+
             # Remove None values
             properties = {k: v for k, v in properties.items() if v is not None}
 
@@ -154,8 +164,18 @@ class DelegadoNotionClient:
             logger.error(f"Error fetching active cases: {e}")
             return []
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+    )
     def update_case_status(self, case_id: str, new_status: str) -> bool:
-        """Updates the status of a case in Notion."""
+        """
+        Updates the status of a case in Notion.
+
+        Includes retry logic for transient API failures.
+        """
         page_id = self._get_page_id_by_case_id(case_id)
         if not page_id:
             logger.warning(f"Case {case_id} not found in Notion.")
@@ -174,8 +194,18 @@ class DelegadoNotionClient:
             logger.error(f"Error updating status for {case_id}: {e}")
             return False
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+    )
     def update_page_links(self, page_id: str, drive_link: str = None, doc_link: str = None):
-        """Updates the Drive and Doc links for a specific page."""
+        """
+        Updates the Drive and Doc links for a specific page.
+
+        Includes retry logic for transient API failures.
+        """
         if not self.client: return
 
         properties = {}
@@ -184,7 +214,7 @@ class DelegadoNotionClient:
         if doc_link:
             # Note: Using 'Perplexity' property as fallback for doc link based on schema discovery
             properties["Perplexity"] = {"url": doc_link}
-            
+
         if not properties: return
 
         try:
@@ -320,9 +350,17 @@ class DelegadoNotionClient:
             return False
 
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, RateLimitError, ConnectionError, TimeoutError)
+    )
     def append_content_blocks(self, page_id: str, research: str, draft: str) -> bool:
         """
         Appends Research and Draft content as toggle blocks to the Notion page.
+
+        Includes retry logic for transient API failures.
         """
         if not self.client:
             return False

@@ -1,8 +1,10 @@
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError, RefreshError
 import os
 import logging
 from typing import Optional
 from src.integrations.auth_helper import get_google_creds
+from src.utils.retry import sync_retry
 
 logger = logging.getLogger(__name__)
 
@@ -26,15 +28,25 @@ class DelegadoDocsClient:
         else:
             logger.warning("Docs integration disabled: No valid credentials.")
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+    )
     def create_draft_document(self, title: str, content: str, parent_folder_id: str) -> Optional[str]:
-        """Creates a Google Doc with content and moves it to the specified folder."""
+        """
+        Creates a Google Doc with content and moves it to the specified folder.
+
+        Includes retry logic for transient API failures.
+        """
         if not self.service or not self.drive_service: return None
 
         try:
             # 1. Create Doc
             doc = self.service.documents().create(body={'title': title}).execute()
             doc_id = doc.get('documentId')
-            
+
             # 2. Insert Content
             text_to_insert = content if content else "(Contenido vacío)"
             requests = [
@@ -46,22 +58,22 @@ class DelegadoDocsClient:
                 }
             ]
             self.service.documents().batchUpdate(documentId=doc_id, body={'requests': requests}).execute()
-            
+
             # 3. Move to Case Folder
             # Retrieve current parents to remove them
             file = self.drive_service.files().get(fileId=doc_id, fields='parents').execute()
             previous_parents = ",".join(file.get('parents'))
-            
+
             self.drive_service.files().update(
                 fileId=doc_id,
                 addParents=parent_folder_id,
                 removeParents=previous_parents,
                 fields='id, webViewLink'
             ).execute()
-            
+
             logger.info(f"Document created and moved: {doc_id}")
             return f"https://docs.google.com/document/d/{doc_id}/edit"
-            
+
         except Exception as e:
             logger.error(f"Error creating draft document: {e}")
             return None
@@ -93,10 +105,20 @@ class DelegadoDocsClient:
             logger.error(f"Error reading document content: {e}")
             return None
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(HttpError, RefreshError, ConnectionError, TimeoutError)
+    )
     def update_document_content(self, document_id: str, new_content: str) -> bool:
-        """Replaces the entire content of the document with new_content."""
+        """
+        Replaces the entire content of the document with new_content.
+
+        Includes retry logic for transient API failures.
+        """
         if not self.service: return False
-        
+
         try:
              # Check if document_id is a URL
             if "docs.google.com" in document_id:
@@ -109,7 +131,7 @@ class DelegadoDocsClient:
             doc = self.service.documents().get(documentId=document_id).execute()
             content = doc.get('body').get('content')
             end_index = content[-1].get('endIndex') - 1
-            
+
             if end_index <= 1:
                 # Document is empty (except for trailing newline)
                 requests = [
