@@ -141,7 +141,19 @@ class DelegadoDriveClient:
             return None
 
     def find_doc_in_folder(self, folder_id: str) -> Optional[str]:
-        """Finds the first Google Doc in a folder and returns its ID."""
+        """
+        Finds the first Google Doc in a folder and returns its ID.
+
+        Searches the specified folder for Google Docs (files with MIME type
+        'application/vnd.google-apps.document') and returns the ID of the
+        first match.
+
+        Args:
+            folder_id (str): The ID of the folder to search in.
+
+        Returns:
+            Optional[str]: The Google Doc ID if found, None otherwise.
+        """
         if not self.service: return None
         try:
             query = f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.document'"
@@ -156,7 +168,16 @@ class DelegadoDriveClient:
 
     def delete_file_or_folder(self, file_id: str) -> bool:
         """
-        Permanently deletes a file or folder from Drive.
+        Permanently deletes a file or folder from Google Drive.
+
+        WARNING: This operation is irreversible. The file/folder will be
+        permanently deleted, not moved to trash.
+
+        Args:
+            file_id (str): The ID of the file or folder to delete.
+
+        Returns:
+            bool: True if deletion succeeded, False otherwise.
         """
         if not self.service: return False
         try:

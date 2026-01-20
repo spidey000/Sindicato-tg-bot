@@ -31,7 +31,25 @@ MODEL_MAX_TOKENS = {
 DEFAULT_MAX_TOKENS = 8192
 
 def get_max_tokens_for_model(model: str) -> int:
-    """Returns the optimal max_tokens value for a given model."""
+    """
+    Returns the optimal max_tokens value for a given OpenRouter model.
+
+    Different models have different maximum token limits. This function matches
+    the model name against known patterns and returns the appropriate limit.
+
+    Args:
+        model (str): The model name/identifier (e.g., "deepseek/deepseek-r1").
+
+    Returns:
+        int: The optimal max_tokens value for the model. Defaults to 8192 if
+             the model is not in the known patterns.
+
+    Example:
+        >>> get_max_tokens_for_model("deepseek/deepseek-r1")
+        32768
+        >>> get_max_tokens_for_model("unknown/model")
+        8192
+    """
     model_lower = model.lower()
     for pattern, max_tokens in MODEL_MAX_TOKENS.items():
         if pattern in model_lower:

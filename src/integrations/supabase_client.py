@@ -324,10 +324,21 @@ class DelegadoSupabaseClient:
 
     def test_connection(self) -> bool:
         """
-        Test the Supabase connection by attempting to query the table.
+        Test the Supabase connection by attempting to query the history_events table.
+
+        This method performs a simple query with limit=1 to verify that:
+        1. The Supabase client is properly initialized
+        2. Authentication credentials are valid
+        3. The history_events table exists and is accessible
 
         Returns:
-            True if connection successful, False otherwise
+            bool: True if connection test succeeds (can query the table),
+                  False otherwise (client not initialized or query fails).
+
+        Example:
+            >>> client = DelegadoSupabaseClient()
+            >>> if client.test_connection():
+            ...     print("Supabase is ready!")
         """
         if not self.client:
             logger.warning("Supabase client not initialized")

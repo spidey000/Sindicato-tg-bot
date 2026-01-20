@@ -81,7 +81,20 @@ class DelegadoDocsClient:
             return None
 
     def read_document_content(self, document_id: str) -> Optional[str]:
-        """Reads the full text content of a Google Doc."""
+        """
+        Reads the full text content of a Google Doc.
+
+        Accepts either a Google Doc ID or a full URL. Extracts and concatenates
+        all text elements from the document structure.
+
+        Args:
+            document_id (str): The Google Doc ID or URL (e.g.,
+                              "https://docs.google.com/document/d/abc123/edit"
+                              or just "abc123").
+
+        Returns:
+            Optional[str]: The full text content of the document, or None on error.
+        """
         if not self.service: return None
         
         try:
@@ -116,9 +129,20 @@ class DelegadoDocsClient:
     @track_api_call('docs')
     def update_document_content(self, document_id: str, new_content: str) -> bool:
         """
-        Replaces the entire content of the document with new_content.
+        Replaces the entire content of a Google Doc with new content.
 
-        Includes retry logic for transient API failures.
+        This method deletes all existing content and inserts the new content.
+        Accepts either a Google Doc ID or a full URL.
+
+        Args:
+            document_id (str): The Google Doc ID or URL.
+            new_content (str): The new text content to replace the existing content.
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+
+        Note:
+            Includes retry logic for transient API failures.
         """
         if not self.service: return False
 
@@ -171,7 +195,19 @@ class DelegadoDocsClient:
             return False
 
     def append_text(self, document_id: str, text: str) -> bool:
-        """Appends text to the end of a document."""
+        """
+        Appends text to the end of a Google Doc with a bot signature.
+
+        Adds the specified text to the end of the document, prefixed with a
+        "[NOTA ADICIONAL - <bot_name>]" header.
+
+        Args:
+            document_id (str): The Google Doc ID or URL.
+            text (str): The text to append to the document.
+
+        Returns:
+            bool: True if append succeeded, False otherwise.
+        """
         if not self.service: return False
         
         try:

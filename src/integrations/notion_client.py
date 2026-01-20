@@ -19,7 +19,15 @@ class DelegadoNotionClient:
             logger.warning("NOTION_TOKEN not found. Notion integration disabled.")
 
     def _get_data_source_id(self) -> Optional[str]:
-        """Retrieves the Data Source ID associated with the current Database ID."""
+        """
+        Retrieves the Data Source ID associated with the current Notion Database.
+
+        This helper method is used as a fallback when the standard databases.query
+        endpoint is not available for managed Notion databases.
+
+        Returns:
+            Optional[str]: The Data Source ID if found, None otherwise.
+        """
         if not self.client or not self.database_id: return None
         try:
             db_info = self.client.databases.retrieve(database_id=self.database_id)
@@ -32,7 +40,23 @@ class DelegadoNotionClient:
             return None
 
     def _query_notion(self, **kwargs) -> Dict[str, Any]:
-        """Wrapper to query Notion, falling back to data_sources if databases.query is missing."""
+        """
+        Wrapper to query Notion database with fallback to data_sources endpoint.
+
+        For managed Notion databases, the standard databases.query endpoint may not
+        be available. This method attempts to use databases.query first, then falls
+        back to data_sources.query if needed.
+
+        Args:
+            **kwargs: Query parameters to pass to the Notion API (typically database_id,
+                     filter, sorts, page_size, etc.)
+
+        Returns:
+            Dict[str, Any]: The API response from Notion.
+
+        Raises:
+            AttributeError: If neither databases.query nor data_sources.query is available.
+        """
         if hasattr(self.client.databases, "query"):
             return self.client.databases.query(**kwargs)
         
@@ -111,7 +135,17 @@ class DelegadoNotionClient:
             return None
 
     def _get_page_id_by_case_id(self, case_id: str) -> Optional[str]:
-        """Helper to find a Notion page ID by its Case ID (Title property)."""
+        """
+        Helper method to find a Notion page ID by searching for its Case ID in the Title.
+
+        The Case ID is expected to be at the start of the page title (e.g., "D-2026-001").
+
+        Args:
+            case_id (str): The Case ID to search for (e.g., "D-2026-001").
+
+        Returns:
+            Optional[str]: The Notion page ID if found, None otherwise.
+        """
         if not self.client or not self.database_id: return None
         try:
             response = self._query_notion(
@@ -131,7 +165,17 @@ class DelegadoNotionClient:
             return None
 
     def get_active_cases(self) -> list:
-        """Retrieves active cases (not archived/closed)."""
+        """
+        Retrieves all active cases from Notion (excluding "Presentada" status).
+
+        Active cases are those with status: "Pendiente de hacer", "En progreso",
+        or "En revisión". Cases marked as "Presentada" (file/submitted) are excluded.
+
+        Returns:
+            list: A list of dictionaries containing case information. Each dictionary
+                  has keys: 'id' (extracted from title prefix), 'title', and 'status'.
+                  Returns empty list on error or if no active cases exist.
+        """
         if not self.client or not self.database_id: return []
         
         try:
@@ -227,7 +271,19 @@ class DelegadoNotionClient:
             logger.error(f"Error updating Notion page links: {e}")
 
     def get_case_links(self, case_id: str) -> dict:
-        """Retrieves Drive and Doc links for a case from Notion."""
+        """
+        Retrieves Google Drive and Google Doc links for a specific case from Notion.
+
+        Queries the Notion page for the given case_id and extracts the URLs from
+        the "Gdrive folder" and "Perplexity" (used as Doc link) properties.
+
+        Args:
+            case_id (str): The Case ID to retrieve links for (e.g., "D-2026-001").
+
+        Returns:
+            dict: A dictionary with keys 'drive_url' and 'doc_url'. Values are None
+                  if the links are not found. Returns empty dict on error.
+        """
         page_id = self._get_page_id_by_case_id(case_id)
         if not page_id: return {}
         
