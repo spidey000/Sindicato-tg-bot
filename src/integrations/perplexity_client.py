@@ -9,6 +9,24 @@ logger = logging.getLogger(__name__)
 
 class PerplexityClient:
     def __init__(self):
+        """
+        Initialize Perplexity API client for AI-powered legal research.
+
+        Configures API keys for Perplexity's sonar-pro model with primary
+        and fallback key rotation for reliability.
+
+        Attributes:
+            primary_key: Primary Perplexity API key from environment variable.
+            fallback_key: Fallback Perplexity API key for failover scenarios.
+            api_url: Perplexity API endpoint for chat completions.
+            model: Model identifier (sonar-pro) optimized for online search grounding.
+            last_raw_response: Stores the most recent raw API response for debugging.
+
+        Note:
+            The sonar-pro model is used for its ability to ground responses in
+            real-time web search results, critical for accurate Spanish labor law research.
+            Supports automatic key rotation if primary key fails.
+        """
         self.primary_key = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
         self.fallback_key = os.getenv("PERPLEXITY_API_KEY_FALLBACK")
         self.api_url = "https://api.perplexity.ai/chat/completions"

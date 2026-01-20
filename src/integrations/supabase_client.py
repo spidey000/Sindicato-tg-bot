@@ -89,7 +89,22 @@ class DelegadoSupabaseClient:
     """
 
     def __init__(self):
-        """Initialize Supabase client from environment variables."""
+        """
+        Initialize Supabase client for event logging and user profile management.
+
+        Creates a Supabase client instance using URL and service key from environment.
+        Requires supabase-py package and valid Supabase credentials.
+
+        Attributes:
+            supabase_url: Supabase project URL from environment variable.
+            supabase_key: Supabase service key for API authentication.
+            client: Supabase client instance for database operations.
+
+        Note:
+            Integration is disabled if supabase-py is not installed or if
+            SUPABASE_URL/SUPABASE_KEY environment variables are not set.
+            This is an optional integration - the bot functions without it.
+        """
         self.supabase_url = os.getenv("SUPABASE_URL")
         self.supabase_key = os.getenv("SUPABASE_KEY")
         self.client: Optional[SupabaseClient] = None
@@ -109,7 +124,20 @@ class DelegadoSupabaseClient:
             logger.warning("SUPABASE_URL or SUPABASE_KEY not found. Supabase integration disabled.")
 
     def is_enabled(self) -> bool:
-        """Check if Supabase integration is enabled and client is initialized."""
+        """
+        Check if Supabase integration is enabled and client is initialized.
+
+        Use this method before calling any Supabase operations to verify
+        that the integration is available.
+
+        Returns:
+            bool: True if Supabase client is initialized and ready, False otherwise.
+
+        Example:
+            >>> supabase = DelegadoSupabaseClient()
+            >>> if supabase.is_enabled():
+            ...     supabase.log_event(user_id=123, event_date="2026-01-20", event_text="Test")
+        """
         return self.client is not None
 
     @sync_retry(

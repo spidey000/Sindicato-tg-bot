@@ -9,10 +9,25 @@ logger = logging.getLogger(__name__)
 
 class DelegadoNotionClient:
     def __init__(self):
+        """
+        Initialize Notion API client with authentication.
+
+        Creates a Notion client instance using the integration token.
+        Requires NOTION_TOKEN and NOTION_DATABASE_ID environment variables.
+
+        Attributes:
+            api_key: Notion integration token for API authentication.
+            database_id: ID of the Notion database used for case management.
+            client: Notion API client instance for database operations.
+
+        Note:
+            Integration is disabled if NOTION_TOKEN is not set.
+            The database_id is required for most query operations.
+        """
         self.api_key = os.getenv("NOTION_TOKEN")
         self.database_id = os.getenv("NOTION_DATABASE_ID")
         self.client = None
-        
+
         if self.api_key:
             self.client = Client(auth=self.api_key)
         else:

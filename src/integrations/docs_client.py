@@ -11,15 +11,31 @@ logger = logging.getLogger(__name__)
 
 class DelegadoDocsClient:
     def __init__(self):
+        """
+        Initialize Google Docs API client with authentication.
+
+        Creates service instances for Google Docs API and Drive API using
+        OAuth2 credentials. Requires valid Google credentials with
+        documents and drive scopes.
+
+        Attributes:
+            service: Google Docs API service instance for document operations.
+            drive_service: Google Drive API service instance for folder operations.
+
+        Note:
+            Both services are initialized from the same credentials to enable
+            seamless integration between Docs creation and Drive folder management.
+            Integration is disabled if credentials are invalid.
+        """
         self.service = None
         self.drive_service = None
-        
+
         SCOPES = [
             'https://www.googleapis.com/auth/documents',
             'https://www.googleapis.com/auth/drive'
         ]
         creds = get_google_creds(SCOPES)
-        
+
         if creds:
             try:
                 self.service = build('docs', 'v1', credentials=creds)

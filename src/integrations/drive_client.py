@@ -13,12 +13,27 @@ logger = logging.getLogger(__name__)
 
 class DelegadoDriveClient:
     def __init__(self):
+        """
+        Initialize Google Drive API client with authentication.
+
+        Creates a service instance for Google Drive API using OAuth2 credentials.
+        Requires valid Google credentials with drive scope.
+
+        Attributes:
+            root_folder_id: Google Drive folder ID where case folders are created.
+                            Loaded from GOOGLE_DRIVE_ROOT_FOLDER_ID environment variable.
+            service: Google Drive API service instance for file/folder operations.
+
+        Note:
+            The root_folder_id determines the parent folder for all case folders.
+            Integration is disabled if credentials are invalid.
+        """
         self.root_folder_id = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER_ID")
         self.service = None
-        
+
         SCOPES = ['https://www.googleapis.com/auth/drive']
         creds = get_google_creds(SCOPES)
-        
+
         if creds:
             try:
                 self.service = build('drive', 'v3', credentials=creds)

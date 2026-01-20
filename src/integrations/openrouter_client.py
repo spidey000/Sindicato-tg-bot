@@ -58,6 +58,22 @@ def get_max_tokens_for_model(model: str) -> int:
 
 class OpenRouterClient:
     def __init__(self):
+        """
+        Initialize OpenRouter API client for LLM completions.
+
+        Configures HTTP headers and authentication for OpenRouter API access.
+        Uses DeepSeek R1 as primary model with Gemma 3 as fallback.
+
+        Attributes:
+            api_key: OpenRouter API key for authentication.
+            base_url: Base URL for OpenRouter API endpoints.
+            headers: HTTP headers including auth, content-type, and app identification.
+            last_raw_response: Stores the most recent raw API response for debugging.
+
+        Note:
+            OpenRouter requires HTTP-Referer and X-Title headers for ranking and attribution.
+            Raw responses are stored when SAVE_RAW_LLM_RESPONSES is enabled in config.
+        """
         self.api_key = OPENROUTER_API_KEY
         self.base_url = OPENROUTER_BASE_URL
         self.headers = {
