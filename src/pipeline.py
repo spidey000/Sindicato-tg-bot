@@ -37,6 +37,7 @@ from src.utils import (
 )
 from src.integrations.perplexity_client import PerplexityClient
 from src.integrations.openrouter_client import OpenRouterClient
+from src.integrations.supabase_client import DelegadoSupabaseClient
 from src.template_loader import get_template_for_document_type
 from src.handlers.base import notion, drive, docs, logger
 
@@ -146,6 +147,7 @@ async def execute_document_pipeline(
     # Initialize AI clients
     pplx_client = PerplexityClient()
     openrouter_client = OpenRouterClient()
+    supabase_client = DelegadoSupabaseClient()
 
     # Pipeline state
     case_id = None
@@ -362,6 +364,22 @@ async def execute_document_pipeline(
             reply_markup = InlineKeyboardMarkup(keyboard)
 
         await update.message.reply_text(response, parse_mode='Markdown', reply_markup=reply_markup)
+
+        # Log event to Supabase for /history command
+        if supabase_client.is_enabled():
+            try:
+                user_id = update.effective_user.id
+                event_text = f"Se creó {config['type_name']} con ID {case_id}: {safe_summary}"
+                supabase_client.log_event(
+                    user_id=user_id,
+                    event_text=event_text,
+                    case_id=case_id,
+                    event_type=document_type
+                )
+                logger.info(f"Logged event to Supabase for case {case_id}")
+            except Exception as e:
+                # Don't fail the pipeline if logging fails
+                logger.error(f"Failed to log event to Supabase: {e}")
 
     except Exception as e:
         logger.error(f"execute_document_pipeline failed for {document_type}: {e}", exc_info=True)

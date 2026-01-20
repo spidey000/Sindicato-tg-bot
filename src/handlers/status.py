@@ -11,6 +11,11 @@ from telegram.ext import ContextTypes
 
 from src.middleware import restricted
 from src.handlers.base import notion
+from src.integrations.supabase_client import DelegadoSupabaseClient
+import logging
+
+logger = logging.getLogger(__name__)
+supabase = DelegadoSupabaseClient()
 
 
 @restricted
@@ -93,6 +98,21 @@ async def status_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         success = notion.update_case_status(case_id, new_status)
         if success:
             await update.message.reply_text("✅ Estado actualizado correctamente en Notion.")
+
+            # Log status update event to Supabase
+            if supabase.is_enabled():
+                try:
+                    user_id = update.effective_user.id
+                    event_text = f"Estado de caso {case_id} actualizado a '{new_status}'"
+                    supabase.log_event(
+                        user_id=user_id,
+                        event_text=event_text,
+                        case_id=case_id,
+                        event_type="status_update"
+                    )
+                    logger.info(f"Logged status update event to Supabase for case {case_id}")
+                except Exception as e:
+                    logger.error(f"Failed to log status update to Supabase: {e}")
         else:
             await update.message.reply_text("❌ Error actualizando Notion (¿El caso existe?).")
     else:

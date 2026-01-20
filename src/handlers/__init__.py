@@ -11,6 +11,7 @@ Module Structure:
 - demanda: /demanda command handler for judicial labor demands
 - email: /email command handler for corporate HR communications
 - status: /status and /update commands for case management
+- history: /history command for chronological event timeline
 - private: Private message handlers for document refinement and file uploads
 """
 
@@ -20,6 +21,7 @@ from src.handlers.denuncia import denuncia_handler
 from src.handlers.demanda import demanda_handler
 from src.handlers.email import email_handler
 from src.handlers.status import status_handler, update_handler
+from src.handlers.history import history_command
 from src.handlers.private import private_message_handler, stop_editing_handler
 
 __all__ = [
@@ -34,6 +36,9 @@ __all__ = [
 
     # Case management commands
     'status_handler', 'update_handler',
+
+    # History command
+    'history_command',
 
     # Private message handlers
     'private_message_handler', 'stop_editing_handler',

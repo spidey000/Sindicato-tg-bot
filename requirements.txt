@@ -6,4 +6,5 @@ google-auth-httplib2==0.*
 google-auth-oauthlib==1.*
 aiohttp==3.*
 httpx==0.*
+supabase==2.*  # Event logging for /history command
 # openai==1.*  # Temporarily removed due to build issues

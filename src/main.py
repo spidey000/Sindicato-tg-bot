@@ -13,7 +13,8 @@ from src.handlers import (
     update_handler,
     metrics_command,
     log_command,
-    help_command
+    help_command,
+    history_command
 )
 
 logger = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ def main():
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("metrics", metrics_command))
     application.add_handler(CommandHandler("log", log_command))
+    application.add_handler(CommandHandler("history", history_command))
     application.add_handler(CommandHandler("denuncia", denuncia_handler))
     application.add_handler(CommandHandler("demanda", demanda_handler))
     application.add_handler(CommandHandler("email", email_handler))
