@@ -24,3 +24,6 @@ test_query.py
 test_request_query.py
 test_request_query_slash.py
 test_request_query_v1.py
+
+# Deployment - Configured versions (not templates)
+deploy/*-configured.*
