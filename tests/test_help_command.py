@@ -7,9 +7,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 's
 
 def test_help_command_exists():
     """
-    Verify that help_command is defined in handlers.py and registered in main.py.
+    Verify that help_command is defined in handlers/admin.py and registered in main.py.
     """
-    with open("src/handlers.py", "r") as f:
+    with open("src/handlers/admin.py", "r") as f:
         content = f.read()
     assert "async def help_command" in content
     assert "CENTRO DE AYUDA MARXNAGER" in content

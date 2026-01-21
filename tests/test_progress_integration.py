@@ -8,9 +8,9 @@ class TestProgressIntegration(unittest.IsolatedAsyncioTestCase):
     @patch("src.handlers.docs")
     @patch("src.handlers.agent_orchestrator")
     @patch("src.middleware.AUTHORIZED_USERS", [12345])
-    @patch("src.handlers.send_progress_message", new_callable=AsyncMock)
-    @patch("src.handlers.update_progress_message", new_callable=AsyncMock)
-    @patch("src.handlers.generate_case_id")
+    @patch("src.utils.send_progress_message", new_callable=AsyncMock)
+    @patch("src.utils.update_progress_message", new_callable=AsyncMock)
+    @patch("src.utils.generate_case_id")
     async def test_denuncia_handler_progress_flow(self, mock_gen_id, mock_update_prog, mock_send_prog, mock_orchestrator, mock_docs, mock_drive, mock_notion):
         # Setup
         update = MagicMock()

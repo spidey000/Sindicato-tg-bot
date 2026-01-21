@@ -1,17 +1,18 @@
 import aiohttp
-import asyncio
 import json
 import logging
 from src.config import (
-    OPENROUTER_API_KEY, 
-    OPENROUTER_BASE_URL, 
-    MODEL_PRIMARY, 
+    OPENROUTER_API_KEY,
+    OPENROUTER_BASE_URL,
+    MODEL_PRIMARY,
     MODEL_FALLBACK,
     PRIMARY_DRAFT_MODEL,
     FALLBACK_DRAFT_MODEL,
     REPAIR_MODEL,
     SAVE_RAW_LLM_RESPONSES
 )
+from src.utils.retry import async_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,25 @@ MODEL_MAX_TOKENS = {
 DEFAULT_MAX_TOKENS = 8192
 
 def get_max_tokens_for_model(model: str) -> int:
-    """Returns the optimal max_tokens value for a given model."""
+    """
+    Returns the optimal max_tokens value for a given OpenRouter model.
+
+    Different models have different maximum token limits. This function matches
+    the model name against known patterns and returns the appropriate limit.
+
+    Args:
+        model (str): The model name/identifier (e.g., "deepseek/deepseek-r1").
+
+    Returns:
+        int: The optimal max_tokens value for the model. Defaults to 8192 if
+             the model is not in the known patterns.
+
+    Example:
+        >>> get_max_tokens_for_model("deepseek/deepseek-r1")
+        32768
+        >>> get_max_tokens_for_model("unknown/model")
+        8192
+    """
     model_lower = model.lower()
     for pattern, max_tokens in MODEL_MAX_TOKENS.items():
         if pattern in model_lower:
@@ -39,6 +58,22 @@ def get_max_tokens_for_model(model: str) -> int:
 
 class OpenRouterClient:
     def __init__(self):
+        """
+        Initialize OpenRouter API client for LLM completions.
+
+        Configures HTTP headers and authentication for OpenRouter API access.
+        Uses DeepSeek R1 as primary model with Gemma 3 as fallback.
+
+        Attributes:
+            api_key: OpenRouter API key for authentication.
+            base_url: Base URL for OpenRouter API endpoints.
+            headers: HTTP headers including auth, content-type, and app identification.
+            last_raw_response: Stores the most recent raw API response for debugging.
+
+        Note:
+            OpenRouter requires HTTP-Referer and X-Title headers for ranking and attribution.
+            Raw responses are stored when SAVE_RAW_LLM_RESPONSES is enabled in config.
+        """
         self.api_key = OPENROUTER_API_KEY
         self.base_url = OPENROUTER_BASE_URL
         self.headers = {
@@ -216,52 +251,67 @@ class OpenRouterClient:
             logger.error(f"JSON repair failed: {e}")
             return invalid_content
 
+    @async_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(aiohttp.ClientError, aiohttp.ClientTimeout, ConnectionError, OSError)
+    )
+    @track_api_call('openrouter')
     async def _make_request(self, messages: list, model: str, response_format: dict = None) -> str:
+        """
+        Make HTTP request to OpenRouter API with retry logic.
+
+        Includes retry decorator for transient failures like:
+        - Network timeouts
+        - Connection errors
+        - Temporary API unavailability
+
+        Args:
+            messages: Chat messages for the API
+            model: Model identifier to use
+            response_format: Optional JSON schema for structured output
+
+        Returns:
+            Generated content string
+
+        Raises:
+            aiohttp.ClientError: For persistent API failures
+            ValueError: For invalid API responses
+        """
         max_tokens = get_max_tokens_for_model(model)
         payload = {
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens
         }
-        
+
         if response_format and "deepseek" in model.lower():
             payload["response_format"] = response_format
-        
-        max_retries = 3
-        retry_delay = 1
-        
-        for attempt in range(max_retries):
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(
-                        f"{self.base_url}/chat/completions",
-                        headers=self.headers,
-                        json=payload,
-                        timeout=300
-                    ) as response:
-                        # Check for non-200 status codes first and log detailed error
-                        if response.status != 200:
-                            error_text = await response.text()
-                            logger.warning(
-                                f"Attempt {attempt + 1}/{max_retries} for {model} failed with status {response.status}. "
-                                f"Reason: {response.reason}. Full Response: {error_text}"
-                            )
-                            # Raise a generic exception to trigger the retry logic
-                            response.raise_for_status()
 
-                        # If status is 200, proceed
-                        data = await response.json()
-                        self.last_raw_response = data
-                        
-                        if "choices" in data and len(data["choices"]) > 0:
-                            return data["choices"][0]["message"]["content"]
-                        else:
-                            raise ValueError(f"Invalid response from OpenRouter: {data}")
-            
-            except (aiohttp.ClientError, ValueError) as e:
-                logger.warning(f"Attempt {attempt + 1}/{max_retries} for {model} failed: {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay * (2 ** attempt))
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{self.base_url}/chat/completions",
+                headers=self.headers,
+                json=payload,
+                timeout=300
+            ) as response:
+                # Check for non-200 status codes
+                if response.status != 200:
+                    error_text = await response.text()
+                    # Non-200 status codes are not retried (they're not transient failures)
+                    error_msg = (
+                        f"OpenRouter API returned status {response.status} for model {model}. "
+                        f"Reason: {response.reason}. Response: {error_text}"
+                    )
+                    logger.error(f"❌ {error_msg}")
+                    raise aiohttp.ClientError(error_msg)
+
+                # If status is 200, proceed
+                data = await response.json()
+                self.last_raw_response = data
+
+                if "choices" in data and len(data["choices"]) > 0:
+                    return data["choices"][0]["message"]["content"]
                 else:
-                    logger.error(f"All attempts failed for model {model}.")
-                    raise e
+                    raise ValueError(f"Invalid response from OpenRouter: {data}")

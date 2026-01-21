@@ -1,22 +1,41 @@
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 import os
 import logging
 from typing import Optional
 from src.integrations.auth_helper import get_google_creds
+from src.utils.retry import sync_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
 class DelegadoDocsClient:
     def __init__(self):
+        """
+        Initialize Google Docs API client with authentication.
+
+        Creates service instances for Google Docs API and Drive API using
+        OAuth2 credentials. Requires valid Google credentials with
+        documents and drive scopes.
+
+        Attributes:
+            service: Google Docs API service instance for document operations.
+            drive_service: Google Drive API service instance for folder operations.
+
+        Note:
+            Both services are initialized from the same credentials to enable
+            seamless integration between Docs creation and Drive folder management.
+            Integration is disabled if credentials are invalid.
+        """
         self.service = None
         self.drive_service = None
-        
+
         SCOPES = [
             'https://www.googleapis.com/auth/documents',
             'https://www.googleapis.com/auth/drive'
         ]
         creds = get_google_creds(SCOPES)
-        
+
         if creds:
             try:
                 self.service = build('docs', 'v1', credentials=creds)
@@ -26,15 +45,26 @@ class DelegadoDocsClient:
         else:
             logger.warning("Docs integration disabled: No valid credentials.")
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(HttpError, ConnectionError, TimeoutError)
+    )
+    @track_api_call('docs')
     def create_draft_document(self, title: str, content: str, parent_folder_id: str) -> Optional[str]:
-        """Creates a Google Doc with content and moves it to the specified folder."""
+        """
+        Creates a Google Doc with content and moves it to the specified folder.
+
+        Includes retry logic for transient API failures.
+        """
         if not self.service or not self.drive_service: return None
 
         try:
             # 1. Create Doc
             doc = self.service.documents().create(body={'title': title}).execute()
             doc_id = doc.get('documentId')
-            
+
             # 2. Insert Content
             text_to_insert = content if content else "(Contenido vacío)"
             requests = [
@@ -46,28 +76,41 @@ class DelegadoDocsClient:
                 }
             ]
             self.service.documents().batchUpdate(documentId=doc_id, body={'requests': requests}).execute()
-            
+
             # 3. Move to Case Folder
             # Retrieve current parents to remove them
             file = self.drive_service.files().get(fileId=doc_id, fields='parents').execute()
             previous_parents = ",".join(file.get('parents'))
-            
+
             self.drive_service.files().update(
                 fileId=doc_id,
                 addParents=parent_folder_id,
                 removeParents=previous_parents,
                 fields='id, webViewLink'
             ).execute()
-            
+
             logger.info(f"Document created and moved: {doc_id}")
             return f"https://docs.google.com/document/d/{doc_id}/edit"
-            
+
         except Exception as e:
             logger.error(f"Error creating draft document: {e}")
             return None
 
     def read_document_content(self, document_id: str) -> Optional[str]:
-        """Reads the full text content of a Google Doc."""
+        """
+        Reads the full text content of a Google Doc.
+
+        Accepts either a Google Doc ID or a full URL. Extracts and concatenates
+        all text elements from the document structure.
+
+        Args:
+            document_id (str): The Google Doc ID or URL (e.g.,
+                              "https://docs.google.com/document/d/abc123/edit"
+                              or just "abc123").
+
+        Returns:
+            Optional[str]: The full text content of the document, or None on error.
+        """
         if not self.service: return None
         
         try:
@@ -93,10 +136,32 @@ class DelegadoDocsClient:
             logger.error(f"Error reading document content: {e}")
             return None
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(HttpError, ConnectionError, TimeoutError)
+    )
+    @track_api_call('docs')
     def update_document_content(self, document_id: str, new_content: str) -> bool:
-        """Replaces the entire content of the document with new_content."""
+        """
+        Replaces the entire content of a Google Doc with new content.
+
+        This method deletes all existing content and inserts the new content.
+        Accepts either a Google Doc ID or a full URL.
+
+        Args:
+            document_id (str): The Google Doc ID or URL.
+            new_content (str): The new text content to replace the existing content.
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+
+        Note:
+            Includes retry logic for transient API failures.
+        """
         if not self.service: return False
-        
+
         try:
              # Check if document_id is a URL
             if "docs.google.com" in document_id:
@@ -109,7 +174,7 @@ class DelegadoDocsClient:
             doc = self.service.documents().get(documentId=document_id).execute()
             content = doc.get('body').get('content')
             end_index = content[-1].get('endIndex') - 1
-            
+
             if end_index <= 1:
                 # Document is empty (except for trailing newline)
                 requests = [
@@ -146,7 +211,19 @@ class DelegadoDocsClient:
             return False
 
     def append_text(self, document_id: str, text: str) -> bool:
-        """Appends text to the end of a document."""
+        """
+        Appends text to the end of a Google Doc with a bot signature.
+
+        Adds the specified text to the end of the document, prefixed with a
+        "[NOTA ADICIONAL - <bot_name>]" header.
+
+        Args:
+            document_id (str): The Google Doc ID or URL.
+            text (str): The text to append to the document.
+
+        Returns:
+            bool: True if append succeeded, False otherwise.
+        """
         if not self.service: return False
         
         try:

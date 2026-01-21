@@ -2,11 +2,31 @@ import os
 import httpx
 import logging
 from typing import Optional
+from src.utils.retry import async_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
 class PerplexityClient:
     def __init__(self):
+        """
+        Initialize Perplexity API client for AI-powered legal research.
+
+        Configures API keys for Perplexity's sonar-pro model with primary
+        and fallback key rotation for reliability.
+
+        Attributes:
+            primary_key: Primary Perplexity API key from environment variable.
+            fallback_key: Fallback Perplexity API key for failover scenarios.
+            api_url: Perplexity API endpoint for chat completions.
+            model: Model identifier (sonar-pro) optimized for online search grounding.
+            last_raw_response: Stores the most recent raw API response for debugging.
+
+        Note:
+            The sonar-pro model is used for its ability to ground responses in
+            real-time web search results, critical for accurate Spanish labor law research.
+            Supports automatic key rotation if primary key fails.
+        """
         self.primary_key = os.getenv("PERPLEXITY_API_KEY_PRIMARY")
         self.fallback_key = os.getenv("PERPLEXITY_API_KEY_FALLBACK")
         self.api_url = "https://api.perplexity.ai/chat/completions"
@@ -160,34 +180,44 @@ class PerplexityClient:
 
         return None
 
+    @async_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(httpx.HTTPError, httpx.TimeoutException, ConnectionError, OSError)
+    )
+    @track_api_call('perplexity')
     async def _make_request(self, api_key: str, payload: dict) -> Optional[str]:
+        """
+        Make HTTP request to Perplexity API with retry logic.
+
+        Includes retry decorator for transient failures like:
+        - Network timeouts
+        - Connection errors
+        - Temporary API unavailability
+
+        Args:
+            api_key: Perplexity API key to use for authentication
+            payload: Request payload to send
+
+        Returns:
+            Response content string if successful, None otherwise
+        """
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
-        
-        max_retries = 3
-        retry_delay = 1
 
-        for attempt in range(max_retries):
-            try:
-                async with httpx.AsyncClient(timeout=60.0) as client:
-                    response = await client.post(self.api_url, json=payload, headers=headers)
-                    
-                    if response.status_code == 200:
-                        data = response.json()
-                        self.last_raw_response = data
-                        content = data["choices"][0]["message"]["content"]
-                        logger.info(f"✅ Perplexity Verification SUCCESS. Status Code: 200. Response Length: {len(content)} characters.")
-                        return content
-                    else:
-                        logger.warning(f"Attempt {attempt + 1}/{max_retries} failed. Status Code: {response.status_code}. Error: {response.text}")
-            except Exception as e:
-                logger.warning(f"Attempt {attempt + 1}/{max_retries} Exception: {str(e)}")
-            
-            if attempt < max_retries - 1:
-                import asyncio
-                await asyncio.sleep(retry_delay * (2 ** attempt)) # Exponential backoff
-        
-        logger.error("❌ Perplexity Verification FAILURE after max retries.")
-        return None
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(self.api_url, json=payload, headers=headers)
+
+            if response.status_code == 200:
+                data = response.json()
+                self.last_raw_response = data
+                content = data["choices"][0]["message"]["content"]
+                logger.info(f"✅ Perplexity SUCCESS. Status Code: 200. Response Length: {len(content)} characters.")
+                return content
+            else:
+                # Non-200 status codes are not retried (they're not transient failures)
+                logger.error(f"❌ Perplexity API returned status {response.status_code}: {response.text}")
+                return None

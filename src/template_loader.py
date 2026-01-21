@@ -2,6 +2,7 @@
 Template Loader Utility
 
 Provides functions to load and parse document templates for legal document generation.
+Includes user profile injection to replace hardcoded data with user-specific information.
 """
 import os
 import re
@@ -60,25 +61,36 @@ def get_template_placeholders(template: str) -> List[str]:
     return unique_placeholders
 
 
-def get_template_for_document_type(document_type: str) -> Optional[str]:
+def get_template_for_document_type(document_type: str, user_profile=None) -> Optional[str]:
     """
-    Returns the appropriate template based on document type.
-    
+    Returns the appropriate template based on document type, with optional user profile injection.
+
     Args:
-        document_type: 'demanda' or 'denuncia'
-    
+        document_type: 'demanda', 'denuncia', or 'email'
+        user_profile: Optional UserProfile object to inject into template
+
     Returns:
-        Template content, or None if not found
+        Template content with user data injected, or None if not found
     """
     template_map = {
         'demanda': 'demanda_template.md',
         'denuncia': 'itss_template.md',
         'email': 'email_template.md'
     }
-    
+
     template_name = template_map.get(document_type.lower())
     if not template_name:
         logger.error(f"Unknown document type: {document_type}")
         return None
-    
-    return load_template(template_name)
+
+    template = load_template(template_name)
+    if not template:
+        return None
+
+    # Inject user profile if provided
+    if user_profile:
+        from src.user_profile import inject_user_profile
+        template = inject_user_profile(template, user_profile)
+        logger.info(f"User profile injected into {document_type} template")
+
+    return template

@@ -8,8 +8,8 @@ class TestE2ERollback(unittest.IsolatedAsyncioTestCase):
     @patch("src.handlers.drive")
     @patch("src.handlers.agent_orchestrator")
     @patch("src.middleware.AUTHORIZED_USERS", [12345])
-    @patch("src.handlers.send_progress_message")
-    @patch("src.handlers.update_progress_message")
+    @patch("src.utils.send_progress_message")
+    @patch("src.utils.update_progress_message")
     @patch("src.integrations.cleanup_helper.DelegadoNotionClient")
     async def test_rollback_on_drive_failure(self, mock_notion_client_cls, mock_update_prog, mock_send_prog, mock_orchestrator, mock_drive, mock_notion):
         # Setup

@@ -25,5 +25,26 @@ test_request_query.py
 test_request_query_slash.py
 test_request_query_v1.py
 
+# Development Scripts
+test_imports.py
+fix_ci.py
+
+# Ralph AI Session Files
+.call_count
+.circuit_breaker_history
+.circuit_breaker_state
+.exit_signals
+.last_reset
+.ralph_session
+.ralph_session_history
+.response_analysis
+@fix_plan.md
+PROMPT.md
+progress.json
+status.json
+RALPH_REPORT.md
+FIX_PLAN_UPDATED.md
+CICD_STATUS.md
+
 # Deployment - Configured versions (not templates)
 deploy/*-configured.*

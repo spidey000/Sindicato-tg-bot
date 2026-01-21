@@ -1,23 +1,48 @@
-from notion_client import Client
+from notion_client import Client, APIResponseError
 import os
 import logging
 from typing import Dict, Any, Optional
+from src.utils.retry import sync_retry
+from src.utils.monitoring import track_api_call
 
 logger = logging.getLogger(__name__)
 
 class DelegadoNotionClient:
     def __init__(self):
+        """
+        Initialize Notion API client with authentication.
+
+        Creates a Notion client instance using the integration token.
+        Requires NOTION_TOKEN and NOTION_DATABASE_ID environment variables.
+
+        Attributes:
+            api_key: Notion integration token for API authentication.
+            database_id: ID of the Notion database used for case management.
+            client: Notion API client instance for database operations.
+
+        Note:
+            Integration is disabled if NOTION_TOKEN is not set.
+            The database_id is required for most query operations.
+        """
         self.api_key = os.getenv("NOTION_TOKEN")
         self.database_id = os.getenv("NOTION_DATABASE_ID")
         self.client = None
-        
+
         if self.api_key:
             self.client = Client(auth=self.api_key)
         else:
             logger.warning("NOTION_TOKEN not found. Notion integration disabled.")
 
     def _get_data_source_id(self) -> Optional[str]:
-        """Retrieves the Data Source ID associated with the current Database ID."""
+        """
+        Retrieves the Data Source ID associated with the current Notion Database.
+
+        This helper method is used as a fallback when the standard databases.query
+        endpoint is not available for managed Notion databases.
+
+        Returns:
+            Optional[str]: The Data Source ID if found, None otherwise.
+        """
         if not self.client or not self.database_id: return None
         try:
             db_info = self.client.databases.retrieve(database_id=self.database_id)
@@ -30,7 +55,23 @@ class DelegadoNotionClient:
             return None
 
     def _query_notion(self, **kwargs) -> Dict[str, Any]:
-        """Wrapper to query Notion, falling back to data_sources if databases.query is missing."""
+        """
+        Wrapper to query Notion database with fallback to data_sources endpoint.
+
+        For managed Notion databases, the standard databases.query endpoint may not
+        be available. This method attempts to use databases.query first, then falls
+        back to data_sources.query if needed.
+
+        Args:
+            **kwargs: Query parameters to pass to the Notion API (typically database_id,
+                     filter, sorts, page_size, etc.)
+
+        Returns:
+            Dict[str, Any]: The API response from Notion.
+
+        Raises:
+            AttributeError: If neither databases.query nor data_sources.query is available.
+        """
         if hasattr(self.client.databases, "query"):
             return self.client.databases.query(**kwargs)
         
@@ -45,10 +86,19 @@ class DelegadoNotionClient:
         
         raise AttributeError("'DatabasesEndpoint' object has no attribute 'query' and no Data Source fallback found.")
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
+    )
+    @track_api_call('notion')
     def create_case_page(self, case_data: Dict[str, Any]) -> Optional[str]:
         """
         Creates a new page in the Notion database for a case.
         Returns the ID of the created page.
+
+        Includes retry logic for transient API failures.
         """
         if not self.client or not self.database_id:
             logger.error("Notion client not initialized or database ID missing.")
@@ -85,7 +135,7 @@ class DelegadoNotionClient:
 
             if notion_type:
                 properties["Organismo"] = {"select": {"name": notion_type}}
-            
+
             # Remove None values
             properties = {k: v for k, v in properties.items() if v is not None}
 
@@ -100,7 +150,17 @@ class DelegadoNotionClient:
             return None
 
     def _get_page_id_by_case_id(self, case_id: str) -> Optional[str]:
-        """Helper to find a Notion page ID by its Case ID (Title property)."""
+        """
+        Helper method to find a Notion page ID by searching for its Case ID in the Title.
+
+        The Case ID is expected to be at the start of the page title (e.g., "D-2026-001").
+
+        Args:
+            case_id (str): The Case ID to search for (e.g., "D-2026-001").
+
+        Returns:
+            Optional[str]: The Notion page ID if found, None otherwise.
+        """
         if not self.client or not self.database_id: return None
         try:
             response = self._query_notion(
@@ -120,7 +180,17 @@ class DelegadoNotionClient:
             return None
 
     def get_active_cases(self) -> list:
-        """Retrieves active cases (not archived/closed)."""
+        """
+        Retrieves all active cases from Notion (excluding "Presentada" status).
+
+        Active cases are those with status: "Pendiente de hacer", "En progreso",
+        or "En revisión". Cases marked as "Presentada" (file/submitted) are excluded.
+
+        Returns:
+            list: A list of dictionaries containing case information. Each dictionary
+                  has keys: 'id' (extracted from title prefix), 'title', and 'status'.
+                  Returns empty list on error or if no active cases exist.
+        """
         if not self.client or not self.database_id: return []
         
         try:
@@ -154,8 +224,19 @@ class DelegadoNotionClient:
             logger.error(f"Error fetching active cases: {e}")
             return []
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
+    )
+    @track_api_call('notion')
     def update_case_status(self, case_id: str, new_status: str) -> bool:
-        """Updates the status of a case in Notion."""
+        """
+        Updates the status of a case in Notion.
+
+        Includes retry logic for transient API failures.
+        """
         page_id = self._get_page_id_by_case_id(case_id)
         if not page_id:
             logger.warning(f"Case {case_id} not found in Notion.")
@@ -174,8 +255,19 @@ class DelegadoNotionClient:
             logger.error(f"Error updating status for {case_id}: {e}")
             return False
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
+    )
+    @track_api_call('notion')
     def update_page_links(self, page_id: str, drive_link: str = None, doc_link: str = None):
-        """Updates the Drive and Doc links for a specific page."""
+        """
+        Updates the Drive and Doc links for a specific page.
+
+        Includes retry logic for transient API failures.
+        """
         if not self.client: return
 
         properties = {}
@@ -184,7 +276,7 @@ class DelegadoNotionClient:
         if doc_link:
             # Note: Using 'Perplexity' property as fallback for doc link based on schema discovery
             properties["Perplexity"] = {"url": doc_link}
-            
+
         if not properties: return
 
         try:
@@ -194,7 +286,19 @@ class DelegadoNotionClient:
             logger.error(f"Error updating Notion page links: {e}")
 
     def get_case_links(self, case_id: str) -> dict:
-        """Retrieves Drive and Doc links for a case from Notion."""
+        """
+        Retrieves Google Drive and Google Doc links for a specific case from Notion.
+
+        Queries the Notion page for the given case_id and extracts the URLs from
+        the "Gdrive folder" and "Perplexity" (used as Doc link) properties.
+
+        Args:
+            case_id (str): The Case ID to retrieve links for (e.g., "D-2026-001").
+
+        Returns:
+            dict: A dictionary with keys 'drive_url' and 'doc_url'. Values are None
+                  if the links are not found. Returns empty dict on error.
+        """
         page_id = self._get_page_id_by_case_id(case_id)
         if not page_id: return {}
         
@@ -320,9 +424,18 @@ class DelegadoNotionClient:
             return False
 
 
+    @sync_retry(
+        max_retries=3,
+        initial_delay=1.0,
+        backoff_factor=2.0,
+        exceptions=(APIResponseError, ConnectionError, TimeoutError)
+    )
+    @track_api_call('notion')
     def append_content_blocks(self, page_id: str, research: str, draft: str) -> bool:
         """
         Appends Research and Draft content as toggle blocks to the Notion page.
+
+        Includes retry logic for transient API failures.
         """
         if not self.client:
             return False
