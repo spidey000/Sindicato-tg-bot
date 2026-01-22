@@ -24,7 +24,10 @@ COPY src/ src/
 COPY .env.example .env.example
 
 # Create a non-root user for security
-RUN useradd -m marxnager && chown -R marxnager:marxnager /app
+RUN useradd -m marxnager && \
+    chown -R marxnager:marxnager /app && \
+    mkdir -p /app/logs && \
+    chown -R marxnager:marxnager /app/logs
 USER marxnager
 
 # Run the bot

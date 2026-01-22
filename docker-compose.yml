@@ -36,6 +36,5 @@ services:
       - DRIVE_FOLDER_DENUNCIAS=${DRIVE_FOLDER_DENUNCIAS}
       - DRIVE_FOLDER_DEMANDAS=${DRIVE_FOLDER_DEMANDAS}
       - DRIVE_FOLDER_EMAILS=${DRIVE_FOLDER_EMAILS}
-    volumes:
-      - ./logs:/app/logs
+    # No ports or volumes needed - logs available via 'docker logs marxnager-bot'
     # No ports exposed as it's a Telegram bot using polling
