@@ -131,6 +131,23 @@ Asegúrate de tener el archivo `google_credentials.json` (la clave de tu Service
 
 ---
 
+## 📚 Documentation
+
+Complete documentation is available in the [docs/](docs/) directory:
+
+- **[Setup Guides](docs/setup/)** - Configure Google Drive, Notion, and Supabase
+- **[Deployment](docs/deployment/)** - Production deployment and architecture
+- **[Specifications](docs/specifications/)** - Product requirements and technical specs
+- **[Reports](docs/reports/)** - Development reports and status updates
+- **[Testing](docs/testing/)** - Testing procedures and checklists
+
+Quick links:
+- [Google Setup Guide](docs/setup/GOOGLE_SETUP.md)
+- [Deployment Guide](docs/deployment/DEPLOYMENT.md)
+- [Testing Checklist](docs/testing/TESTING_CHECKLIST.md)
+
+---
+
 ## 📂 Estructura del Proyecto
 
 ```
@@ -141,10 +158,11 @@ sindicato-tg-bot/
 │   ├── handlers.py      # Manejadores de comandos de Telegram
 │   ├── main.py          # Punto de entrada
 │   └── config.py        # Configuración central
+├── docs/                # Documentation (setup, deployment, specs, reports)
 ├── tests/               # Tests unitarios
+├── deploy/              # Deployment scripts and webhook server
 ├── .env                 # Variables de entorno (NO COMMIT)
 ├── google_credentials.json # Key de Google (NO COMMIT)
-├── PRD_Final.md         # Documentación funcional completa
 └── requirements.txt     # Dependencias Python
 ```
 

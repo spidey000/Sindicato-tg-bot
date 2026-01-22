@@ -10,7 +10,7 @@ Usage:
 
 Requirements:
     - SUPABASE_URL and SUPABASE_KEY must be set in .env
-    - Supabase migrations must be run (see SUPABASE_SETUP.md)
+    - Supabase migrations must be run (see docs/setup/SUPABASE_SETUP.md)
 """
 
 import os
@@ -275,12 +275,12 @@ def main():
     # Check environment variables
     if not os.getenv("SUPABASE_URL"):
         print("\n❌ SUPABASE_URL not set in .env")
-        print("   See SUPABASE_SETUP.md for setup instructions")
+        print("   See docs/setup/SUPABASE_SETUP.md for setup instructions")
         return 1
 
     if not os.getenv("SUPABASE_KEY"):
         print("\n❌ SUPABASE_KEY not set in .env")
-        print("   See SUPABASE_SETUP.md for setup instructions")
+        print("   See docs/setup/SUPABASE_SETUP.md for setup instructions")
         return 1
 
     # Run tests
@@ -317,7 +317,7 @@ def main():
     else:
         print("\n❌ Some tests failed. Please check the errors above.")
         print("\nTroubleshooting:")
-        print("1. Ensure Supabase migrations have been run (SUPABASE_SETUP.md)")
+        print("1. Ensure Supabase migrations have been run (docs/setup/SUPABASE_SETUP.md)")
         print("2. Check SUPABASE_URL and SUPABASE_KEY are correct in .env")
         print("3. Verify Supabase project is active and accessible")
         return 1
